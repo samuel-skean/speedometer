@@ -51,6 +51,24 @@
                 font-weight: 700;
                 line-height: 1;
                 letter-spacing: -0.02em;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 1.25ch;
             }
             .unit {
                 font-size: clamp(22px, 7vw, 44px);
@@ -85,7 +103,7 @@
     <body>
         <button id="unitToggle" aria-label="Toggle speed units">mph</button>
         <div class="container">
-            <div id="speed" class="speed">—</div>
+            <div id="speed" class="speed"></div>
             <div id="unit" class="unit">mph</div>
         </div>
         <div id="status" class="status">Waiting for GPS...</div>
