@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 18vw, 180px);
+                font-weight: 700;
+                line-height: 1;
+                letter-spacing: -0.02em;
+            }
+            .unit {
+                font-size: clamp(16px, 4vw, 28px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 14px;
+                opacity: 0.7;
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 14px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed">—</div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script src="app.js"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>

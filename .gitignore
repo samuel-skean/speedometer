@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Node dependencies
+node_modules/
+
+# Generated icons
+icons/generated/
+
+# Optional: ignore local development certificates
+certs/
