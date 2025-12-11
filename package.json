@@ -12,7 +12,7 @@
     "render:icons:custom": "ts-node scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated --sizes=192,512",
     "certs:install": "mkcert -install",
     "certs:generate": "cd certs && mkcert localhost 127.0.0.1 ::1",
-    "postinstall": "npm run render:icons && ( [ \"$CF_PAGES\" = \"1\" ] && echo \"Skipping mkcert on Cloudflare Pages\" || (npm run certs:install && npm run certs:generate) )"
+    "postinstall": "npm run render:icons && ( command -v mkcert >/dev/null 2>&1 && npm run certs:install && npm run certs:generate || echo \"Skipping mkcert (mkcert not found)\" )"
   },
   "dependencies": {
     "sharp": "^0.33.3"
