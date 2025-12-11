@@ -1,31 +1,31 @@
 {
-	"name": "speedometer",
-	"version": "0.0.1",
-	"description": "Minimal PWA speedometer that displays GPS speed. Includes TypeScript script to render PNG icons from SVG using sharp.",
-	"license": "MIT",
-	"private": true,
-	"scripts": {
-		"start:http": "serve -l 8080",
-		"start:https": "serve --ssl-cert certs/localhost+2.pem --ssl-key certs/localhost+2-key.pem -l 8443",
-		"start:https:auto": "ts-node scripts/start-https.ts",
-		"render:icons": "ts-node scripts/render-icons.ts --out=icons/generated --sizes=192,512",
-		"render:icons:custom": "ts-node scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated --sizes=192,512",
-		"certs:install": "mkcert -install",
-		"certs:generate": "cd certs && mkcert localhost 127.0.0.1 ::1",
-		"postinstall": "npm run render:icons && npm run certs:install && npm run certs:generate"
-	},
-	"dependencies": {
-		"sharp": "^0.33.3"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.3.8",
-		"@types/node": "^22.7.5",
-		"serve": "^14.2.5",
-		"ts-node": "^10.9.2",
-		"typescript": "^5.6.3",
-		"wrangler": "^4.54.0"
-	},
-	"engines": {
-		"node": ">=18.0.0"
-	}
+  "name": "speedometer",
+  "version": "0.0.1",
+  "description": "Minimal PWA speedometer that displays GPS speed. Includes TypeScript script to render PNG icons from SVG using sharp.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start:http": "serve -l 8080",
+    "start:https": "serve --ssl-cert certs/localhost+2.pem --ssl-key certs/localhost+2-key.pem -l 8443",
+    "start:https:auto": "ts-node scripts/start-https.ts",
+    "render:icons": "ts-node scripts/render-icons.ts --out=icons/generated --sizes=192,512",
+    "render:icons:custom": "ts-node scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated --sizes=192,512",
+    "certs:install": "mkcert -install",
+    "certs:generate": "cd certs && mkcert localhost 127.0.0.1 ::1",
+    "postinstall": "npm run render:icons && ( [ \"$CF_PAGES\" = \"1\" ] && echo \"Skipping mkcert on Cloudflare Pages\" || (npm run certs:install && npm run certs:generate) )"
+  },
+  "dependencies": {
+    "sharp": "^0.33.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.8",
+    "@types/node": "^22.7.5",
+    "serve": "^14.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.54.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
