@@ -22,6 +22,9 @@
             html,
             body {
                 height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
             }
             body {
                 margin: 0;
@@ -37,6 +40,8 @@
                 color: #eee;
                 display: grid;
                 place-items: center;
+                touch-action: none;
+                overscroll-behavior: none;
             }
             .container {
                 text-align: center;

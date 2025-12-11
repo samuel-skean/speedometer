@@ -4,7 +4,7 @@
  * with a navigation fallback to index.html.
  */
 
-const CACHE_VERSION = "0.0.3";
+const CACHE_VERSION = "0.0.4";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS = [
