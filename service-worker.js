@@ -4,11 +4,10 @@
  * with a navigation fallback to index.html.
  */
 
-const CACHE_VERSION = "0.0.2";
+const CACHE_VERSION = "0.0.3";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS = [
-  "/",
   "/index.html",
   "/app.js",
   "/manifest.webmanifest",
