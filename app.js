@@ -9,6 +9,10 @@ const speedEl = document.getElementById("speed");
 const unitEl = document.getElementById("unit");
 const statusEl = document.getElementById("status");
 const unitToggleBtn = document.getElementById("unitToggle");
+speedEl.style.display = "inline-block";
+speedEl.style.textAlign = "center";
+speedEl.style.fontVariantNumeric = "tabular-nums lining-nums";
+speedEl.style.fontFeatureSettings = '"tnum" 1, "lnum" 1';
 
 const Units = {
   MPH: "mph",
@@ -27,16 +31,29 @@ unitToggleBtn.addEventListener("click", () => {
 
   // Re-render current speed in new units if we have a last value
   if (lastComputedSpeed != null) {
-    speedEl.textContent = formatSpeed(lastComputedSpeed);
+    renderSpeed(lastComputedSpeed);
   }
 });
 
-function formatSpeed(ms) {
-  if (ms == null || !Number.isFinite(ms)) return "—";
-  const value = currentUnit === Units.MPH ? ms * 2.2369362920544 : ms * 3.6;
-  const rounded =
-    value >= 100 ? Math.round(value) : Math.round(value * 10) / 10;
-  return String(rounded);
+function renderSpeed(ms) {
+  let value;
+  if (ms == null || !Number.isFinite(ms)) {
+    value = 0.0;
+  } else {
+    value = currentUnit === Units.MPH ? ms * 2.2369362920544 : ms * 3.6;
+  }
+  const clamped = Math.min(Math.max(value, 0), 999.9);
+  const rounded = Math.round(clamped * 10) / 10;
+  const s = rounded.toFixed(1); // e.g., "5.0", "123.4"
+  const [intPart, decPart] = s.split(".");
+  // Reserve space for "00." without drawing it; center the 3-digit integer block
+  const html =
+    '<span style="display:inline-block;width:3ch;position:relative;text-align:right;">' +
+    intPart +
+    '<span style="position:absolute;left:100%;transform:translateX(0)">.' +
+    decPart +
+    "</span></span>";
+  speedEl.innerHTML = html;
 }
 
 // Haversine distance in meters between two lat/lon coords
@@ -45,9 +62,7 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth radius (m)
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -57,7 +72,7 @@ let lastComputedSpeed = null; // meters per second
 
 function updateSpeed(ms) {
   lastComputedSpeed = ms;
-  speedEl.textContent = formatSpeed(ms);
+  renderSpeed(ms);
 }
 
 function setStatus(text) {
@@ -75,18 +90,12 @@ function handlePosition(pos) {
   } else if (lastFix) {
     const dtMs = ts - lastFix.ts;
     if (dtMs > 0) {
-      const distM = haversineMeters(
-        lastFix.lat,
-        lastFix.lon,
-        latitude,
-        longitude,
-      );
+      const distM = haversineMeters(lastFix.lat, lastFix.lon, latitude, longitude);
       const ms = distM / (dtMs / 1000);
 
       // Filter unrealistic spikes (e.g., GPS jumps)
       const maxHumanSpeedMs = 100; // ~224 mph
-      const reasonable =
-        Number.isFinite(ms) && ms >= 0 && ms <= maxHumanSpeedMs;
+      const reasonable = Number.isFinite(ms) && ms >= 0 && ms <= maxHumanSpeedMs;
 
       updateSpeed(reasonable ? ms : lastComputedSpeed);
     }
@@ -128,11 +137,7 @@ const watchOptions = {
 
 if ("geolocation" in navigator) {
   setStatus("Requesting GPS...");
-  navigator.geolocation.watchPosition(
-    handlePosition,
-    handleError,
-    watchOptions,
-  );
+  navigator.geolocation.watchPosition(handlePosition, handleError, watchOptions);
 } else {
   setStatus("Geolocation not supported on this device.");
 }
