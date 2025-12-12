@@ -4,7 +4,7 @@
  * with a navigation fallback to index.html.
  */
 
-const CACHE_VERSION = "0.0.10";
+const CACHE_VERSION = "0.0.11";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -19,9 +19,7 @@ const ASSETS = [
  * On install, pre-cache core assets.
  */
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)),
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
   self.skipWaiting();
 });
 
@@ -32,13 +30,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key)),
-        ),
-      ),
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
   );
   self.clients.claim();
 });
@@ -64,12 +56,21 @@ self.addEventListener("fetch", (event) => {
         try {
           // Try network first for navigations (to keep fresh)
           const networkResponse = await fetch(request);
+          // iOS Safari: avoid serving redirected responses from SW
+          if (networkResponse.redirected) {
+            const finalResp = await fetch(networkResponse.url, { method: "GET" });
+            return finalResp;
+          }
           // Optionally cache successful navigations (not strictly necessary)
           return networkResponse;
         } catch {
           // Offline fallback
           const cachedIndex = await caches.match("/index.html");
-          return cachedIndex || new Response("Offline", { status: 503 });
+          // iOS Safari: avoid serving redirected responses from SW
+          if (cachedIndex && !cachedIndex.redirected) {
+            return cachedIndex;
+          }
+          return new Response("Offline", { status: 503 });
         }
       })(),
     );
@@ -80,12 +81,18 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     (async () => {
       const cached = await caches.match(request);
-      if (cached) return cached;
+      if (cached && !cached.redirected) return cached;
 
       try {
         const networkResponse = await fetch(request);
-        // Cache a copy of successful GET responses
-        if (request.method === "GET" && networkResponse.ok) {
+        // Cache a copy of successful GET responses (only 200/basic and non-redirected)
+        if (
+          request.method === "GET" &&
+          networkResponse.ok &&
+          networkResponse.status === 200 &&
+          networkResponse.type === "basic" &&
+          !networkResponse.redirected
+        ) {
           const cache = await caches.open(CACHE_NAME);
           cache.put(request, networkResponse.clone());
         }
@@ -94,7 +101,7 @@ self.addEventListener("fetch", (event) => {
         // As a last resort, if the request was for an asset we know, serve it from cache
         if (ASSETS.includes(url.pathname)) {
           const fallback = await caches.match(request);
-          if (fallback) return fallback;
+          if (fallback && !fallback.redirected) return fallback;
         }
         return new Response("Offline", { status: 503 });
       }
