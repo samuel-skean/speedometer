@@ -1,0 +1,262 @@
+## User
+
+Make the CACHE_VERSION match the version in package.json. Fix anything else necessary to make that work.
+
+**Tool Call: Search files for regex `CACHE_VERSION`**
+Status: Completed
+
+Found 1 matches:
+
+## Matches in speedometer/service-worker.js
+
+### const CACHE_VERSION › L1-11
+```
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Caches the app shell and serves cached responses when offline,
+ * with a navigation fallback to index.html.
+ */
+
+const CACHE_VERSION = "v1";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS = [
+	"/",
+```
+
+94 lines remaining in ancestor node. Read the file to see all.
+
+
+**Tool Call: Read file `service-worker.js`**
+Status: Completed
+
+```json
+{"Text":"/**\n * Offline-first service worker for Speedometer PWA.\n * Caches the app shell and serves cached responses when offline,\n * with a navigation fallback to index.html.\n */\n\nconst CACHE_VERSION = \"v1\";\nconst CACHE_NAME = `speedometer-${CACHE_VERSION}`;\n\nconst ASSETS = [\n\t\"/\",\n\t\"/index.html\",\n\t\"/app.js\",\n\t\"/manifest.webmanifest\",\n\t\"/icons/generated/icon-192.png\",\n\t\"/icons/generated/icon-512.png\",\n];\n\n/**\n * On install, pre-cache core assets.\n */\nself.addEventListener(\"install\", (event) => {\n\tevent.waitUntil(\n\t\tcaches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)),\n\t);\n\tself.skipWaiting();\n});\n\n/**\n * On activate, purge old caches.\n */\nself.addEventListener(\"activate\", (event) => {\n\tevent.waitUntil(\n\t\tcaches\n\t\t\t.keys()\n\t\t\t.then((keys) =>\n\t\t\t\tPromise.all(\n\t\t\t\t\tkeys\n\t\t\t\t\t\t.filter((key) => key !== CACHE_NAME)\n\t\t\t\t\t\t.map((key) => caches.delete(key)),\n\t\t\t\t),\n\t\t\t),\n\t);\n\tself.clients.claim();\n});\n\n/**\n * Fetch handler:\n * - Try cache first for same-origin requests; fall back to network.\n * - For navigation requests, fall back to cached index.html when offline.\n */\nself.addEventListener(\"fetch\", (event) => {\n\tconst { request } = event;\n\tconst url = new URL(request.url);\n\n\t// Only handle same-origin requests\n\tif (url.origin !== self.location.origin) {\n\t\treturn;\n\t}\n\n\t// Navigation requests: offline fallback to index.html\n\tif (request.mode === \"navigate\") {\n\t\tevent.respondWith(\n\t\t\t(async () => {\n\t\t\t\ttry {\n\t\t\t\t\t// Try network first for navigations (to keep fresh)\n\t\t\t\t\tconst networkResponse = await fetch(request);\n\t\t\t\t\t// Optionally cache successful navigations (not strictly necessary)\n\t\t\t\t\treturn networkResponse;\n\t\t\t\t} catch {\n\t\t\t\t\t// Offline fallback\n\t\t\t\t\tconst cachedIndex = await caches.match(\"/index.html\");\n\t\t\t\t\treturn cachedIndex || new Response(\"Offline\", { status: 503 });\n\t\t\t\t}\n\t\t\t})(),\n\t\t);\n\t\treturn;\n\t}\n\n\t// Static assets and other requests: cache-first, then network\n\tevent.respondWith(\n\t\t(async () => {\n\t\t\tconst cached = await caches.match(request);\n\t\t\tif (cached) return cached;\n\n\t\t\ttry {\n\t\t\t\tconst networkResponse = await fetch(request);\n\t\t\t\t// Cache a copy of successful GET responses\n\t\t\t\tif (request.method === \"GET\" && networkResponse.ok) {\n\t\t\t\t\tconst cache = await caches.open(CACHE_NAME);\n\t\t\t\t\tcache.put(request, networkResponse.clone());\n\t\t\t\t}\n\t\t\t\treturn networkResponse;\n\t\t\t} catch {\n\t\t\t\t// As a last resort, if the request was for an asset we know, serve it from cache\n\t\t\t\tif (ASSETS.includes(url.pathname)) {\n\t\t\t\t\tconst fallback = await caches.match(request);\n\t\t\t\t\tif (fallback) return fallback;\n\t\t\t\t}\n\t\t\t\treturn new Response(\"Offline\", { status: 503 });\n\t\t\t}\n\t\t})(),\n\t);\n});\n"}
+```
+
+**Tool Call: Find paths matching “`speedometer/**/package.json`”**
+Status: Completed
+
+```json
+{"offset":0,"current_matches_page":["/Users/samuel-skean/Coding/speedometer/package.json"],"all_matches_len":1}
+```
+
+**Tool Call: Read file `package.json`**
+Status: Completed
+
+```json
+{"Text":"{\n\t\"name\": \"speedometer\",\n\t\"version\": \"0.0.1\",\n\t\"description\": \"Minimal PWA speedometer that displays GPS speed. Includes TypeScript script to render PNG icons from SVG using sharp.\",\n\t\"license\": \"MIT\",\n\t\"private\": true,\n\t\"scripts\": {\n\t\t\"start:http\": \"serve -l 8080\",\n\t\t\"start:https\": \"serve --ssl-cert certs/localhost+2.pem --ssl-key certs/localhost+2-key.pem -l 8443\",\n\t\t\"start:https:auto\": \"ts-node scripts/start-https.ts\",\n\t\t\"render:icons\": \"ts-node scripts/render-icons.ts --out=icons/generated --sizes=192,512\",\n\t\t\"render:icons:custom\": \"ts-node scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated --sizes=192,512\",\n\t\t\"certs:install\": \"mkcert -install\",\n\t\t\"certs:generate\": \"cd certs && mkcert localhost 127.0.0.1 ::1\",\n\t\t\"postinstall\": \"npm run render:icons && npm run certs:install && npm run certs:generate\"\n\t},\n\t\"dependencies\": {\n\t\t\"sharp\": \"^0.33.3\"\n\t},\n\t\"devDependencies\": {\n\t\t\"@biomejs/biome\": \"2.3.8\",\n\t\t\"@types/node\": \"^22.7.5\",\n\t\t\"serve\": \"^14.2.5\",\n\t\t\"ts-node\": \"^10.9.2\",\n\t\t\"typescript\": \"^5.6.3\"\n\t},\n\t\"engines\": {\n\t\t\"node\": \">=18.0.0\"\n\t}\n}\n"}
+```
+
+**Tool Call: service-worker.js**
+Status: Completed
+
+Diff: speedometer/service-worker.js
+```
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Caches the app shell and serves cached responses when offline,
+ * with a navigation fallback to index.html.
+ */
+
+const CACHE_VERSION = "0.0.1";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/app.js",
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * On install, pre-cache core assets.
+ */
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Try cache first for same-origin requests; fall back to network.
+ * - For navigation requests, fall back to cached index.html when offline.
+ */
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Navigation requests: offline fallback to index.html
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Try network first for navigations (to keep fresh)
+          const networkResponse = await fetch(request);
+          // Optionally cache successful navigations (not strictly necessary)
+          return networkResponse;
+        } catch {
+          // Offline fallback
+          const cachedIndex = await caches.match("/index.html");
+          return cachedIndex || new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // Static assets and other requests: cache-first, then network
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+
+      try {
+        const networkResponse = await fetch(request);
+        // Cache a copy of successful GET responses
+        if (request.method === "GET" && networkResponse.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch {
+        // As a last resort, if the request was for an asset we know, serve it from cache
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+## Assistant
+
+I updated the service worker’s `CACHE_VERSION` to match the version in `package.json` (0.0.1). The cache name uses that version, and old caches are purged on activation, so version bumps will correctly invalidate the cache.
+
+Here’s the change:
+
+```speedometer/service-worker.js#L1-93
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Caches the app shell and serves cached responses when offline,
+ * with a navigation fallback to index.html.
+ */
+
+const CACHE_VERSION = "0.0.1";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/app.js",
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * On install, pre-cache core assets.
+ */
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Try cache first for same-origin requests; fall back to network.
+ * - For navigation requests, fall back to cached index.html when offline.
+ */
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Navigation requests: offline fallback to index.html
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Try network first for navigations (to keep fresh)
+          const networkResponse = await fetch(request);
+          // Optionally cache successful navigations (not strictly necessary)
+          return networkResponse;
+        } catch {
+          // Offline fallback
+          const cachedIndex = await caches.match("/index.html");
+          return cachedIndex || new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // Static assets and other requests: cache-first, then network
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+
+      try {
+        const networkResponse = await fetch(request);
+        // Cache a copy of successful GET responses
+        if (request.method === "GET" && networkResponse.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch {
+        // As a last resort, if the request was for an asset we know, serve it from cache
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+```
+
+Notes:
+- When you bump the version in `package.json`, update `CACHE_VERSION` here as well to trigger cache invalidation. In a future iteration, we could wire this up to a build step that injects the version automatically (e.g., using a bundler or a prepublish script), but with the current setup this manual sync does the job.

@@ -1,0 +1,130 @@
+## User
+
+How do I install a tls cert on my iphone?
+
+## Assistant
+
+Installing a TLS certificate on an iPhone depends on what kind of certificate you have and what you want to do with it. There are two common scenarios:
+
+- You want to trust a custom/root CA so Safari and apps accept your internal HTTPS sites.
+- You need to install a client certificate (often a `.p12`/`.pfx`) to authenticate to a Wi‑Fi/VPN/enterprise service.
+
+Below are the steps for both on modern iOS (iOS 16/17/18). The exact menu names can vary slightly by version.
+
+What you need to know first
+- File types:
+  - Root/intermediate CA: `.cer`, `.crt`, or `.pem` (public cert only).
+  - Client identity: `.p12` or `.pfx` (contains private key + cert, usually password-protected).
+- You can deliver the cert to the iPhone via:
+  - AirDrop from a Mac.
+  - Email attachment opened in Mail.
+  - Hosting the file on a secure website and opening the link in Safari.
+  - iCloud Drive/Files app (tap the file).
+  - Apple Configurator or an MDM profile (enterprise).
+
+Install a root or intermediate CA certificate
+1. Get the cert onto the phone:
+   - AirDrop the `.cer/.crt/.pem` file to your iPhone, or email it to yourself and open the attachment in Mail, or open the URL to the cert in Safari, or tap it in Files.
+2. Tap the certificate file. You’ll see “Profile” or “Certificate” with an Install button.
+3. Tap Install. If prompted, enter your passcode.
+4. After install, you must explicitly trust the root CA:
+   - Go to Settings > General > About > Certificate Trust Settings.
+   - Find your certificate under “Enable Full Trust for Root Certificates.”
+   - Toggle it ON and confirm.
+5. Test by visiting your internal HTTPS site in Safari; it should no longer warn.
+
+Notes:
+- Only toggle trust for CAs you fully control and trust. A malicious CA can intercept traffic.
+- If the certificate is not a root CA (e.g., just a server cert), iOS will install it but you typically shouldn’t enable full trust for it; trust should be for the issuing root CA.
+
+Install a client certificate (.p12/.pfx) for Wi‑Fi/VPN/app auth
+1. Deliver the `.p12/.pfx` to the phone via AirDrop/Email/Files/Safari.
+2. Tap the file and choose Install.
+3. Enter the password for the `.p12` when prompted (this is set when the file was exported).
+4. The identity is added to the device. Many apps or configurations (e.g., Wi‑Fi EAP‑TLS, VPN, Mail, enterprise apps) will automatically list it as an available identity.
+   - For Wi‑Fi: Settings > Wi‑Fi > tap your network > Configure > choose the identity if asked.
+   - For VPN: Settings > VPN > your connection > select the certificate/identity if required.
+   - For Mail/Profiles: The app or profile setup will reference the installed identity.
+
+Installing via a configuration profile (optional, more advanced/enterprise)
+- You can bundle certificates in a `.mobileconfig` profile (created with Apple Configurator or MDM).
+- Deliver the profile via AirDrop, email, or a link. Tap to install: Settings > General > VPN & Device Management (or Profiles) > Install.
+- Profiles can set Wi‑Fi/VPN settings and include the cert so it’s auto-selected.
+
+Removing a certificate
+- Settings > General > VPN & Device Management (or Profiles) > tap the certificate/profile > Remove Profile.
+- Or Settings > General > About > Certificate Trust Settings > disable trust for a CA.
+
+Troubleshooting tips
+- “Not trusted” errors: Ensure you installed and enabled full trust for the issuing root CA, not just the server cert.
+- PEM vs DER: If a `.pem` doesn’t install, convert to `.cer` (DER) on a Mac: openssl x509 -in cert.pem -outform der -out cert.cer (run on a computer).
+- Client cert not selectable: Confirm the `.p12` includes the private key and the full chain; re-export with “Include all certificates in the certification path.”
+- iOS caches trust: After changes, toggle Airplane Mode or reboot to clear any stale trust state.
+
+If you tell me which certificate you have (root CA vs server cert vs client identity) and how you plan to use it, I can give you exact, step-by-step guidance tailored to your case.
+
+## User
+
+I'm doing the first one, for an https site. Which file in the certs directory contains only the public cert?
+
+**Tool Call: Find paths matching “`**/certs/**`”**
+Status: Completed
+
+```json
+{"offset":0,"current_matches_page":[],"all_matches_len":0}
+```
+
+## Assistant
+
+If you’re installing a certificate on your iPhone to trust your internal HTTPS site, you want the root CA’s public certificate (not the server cert, and definitely not any private key).
+
+How to identify the public cert among your files
+- File extensions are a hint:
+  - Public certs: `.crt`, `.cer`, `.pem` (may also contain a chain).
+  - Private keys: `.key`, `.pem` (if it contains a “PRIVATE KEY” block).
+  - Bundles: `.p12`/`.pfx` contain private key + cert; these are for client identities, not what you need for trust.
+- Open the files and look at the headers:
+  - A public certificate will have:
+    ```/dev/null/sample.txt#L1-6
+    -----BEGIN CERTIFICATE-----
+    ...base64...
+    -----END CERTIFICATE-----
+    ```
+  - A private key will have one of:
+    ```/dev/null/sample.txt#L1-6
+    -----BEGIN PRIVATE KEY-----
+    -----BEGIN RSA PRIVATE KEY-----
+    -----BEGIN EC PRIVATE KEY-----
+    ```
+- Typical names for the public CA cert:
+  - `ca.crt`, `rootCA.crt`, `rootCA.cer`, `rootCA.pem`, `my-org-ca.crt`
+  - Avoid files named `server.crt`, `fullchain.pem`, or `chain.pem` for iOS trust; those are server/chain certs.
+
+If you have OpenSSL available, you can verify the contents safely:
+
+- Check if a `.pem` contains only a cert and no private key:
+  ```/dev/null/commands.sh#L1-4
+  openssl x509 -in path/to/file.pem -noout -text
+  ```
+  If it prints certificate details (Subject, Issuer, Not Before/After) and no errors, it’s a cert. If it errors like “unable to load certificate,” it might be a key or different format.
+
+- Check if a file is a private key:
+  ```/dev/null/commands.sh#L1-2
+  openssl pkey -in path/to/file.pem -noout
+  ```
+  If this succeeds, it’s a private key and you shouldn’t install it on iOS.
+
+- Inspect a DER `.cer/.crt`:
+  ```/dev/null/commands.sh#L1-2
+  openssl x509 -inform der -in path/to/file.cer -noout -text
+  ```
+
+What to install on the iPhone
+- Install the root CA’s public certificate file (DER or PEM). If your cert is PEM and iOS won’t accept it, convert to DER:
+  ```/dev/null/commands.sh#L1-2
+  openssl x509 -in rootCA.pem -outform der -out rootCA.cer
+  ```
+- After installing, go to Settings > General > About > Certificate Trust Settings and enable “full trust” for that root CA.
+
+If you share the filenames in your `certs` directory or a quick listing of their first lines (the BEGIN/END headers), I can tell you exactly which one to use.
+
