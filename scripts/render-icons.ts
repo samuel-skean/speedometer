@@ -14,6 +14,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import minimist from "minimist";
 import sharp from "sharp";
 
 type CliOptions = {
@@ -23,17 +24,19 @@ type CliOptions = {
 };
 
 function parseArgs(): CliOptions {
-  const args = process.argv.slice(2);
+  const argv = minimist(process.argv.slice(2), {
+    string: ["src", "out", "sizes"],
+    default: {
+      src: path.resolve(__dirname, "../icons/icon.svg"),
+      out: path.resolve(__dirname, "../icons"),
+      sizes: "192,512",
+    },
+  });
 
-  const getArg = (name: string, fallback?: string) => {
-    const prefix = `--${name}=`;
-    const found = args.find((a) => a.startsWith(prefix));
-    return found ? found.slice(prefix.length) : fallback;
-  };
+  const src = argv.src as string;
+  const outDir = argv.out as string;
+  const sizesArg = argv.sizes as string;
 
-  const src = getArg("src", path.resolve(__dirname, "../icons/icon.svg"))!;
-  const outDir = getArg("out", path.resolve(__dirname, "../icons"))!;
-  const sizesArg = getArg("sizes", "192,512")!;
   const sizes = sizesArg
     .split(",")
     .map((s) => Number(s.trim()))

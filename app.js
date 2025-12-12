@@ -62,7 +62,9 @@ function haversineMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000; // Earth radius (m)
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -90,12 +92,18 @@ function handlePosition(pos) {
   } else if (lastFix) {
     const dtMs = ts - lastFix.ts;
     if (dtMs > 0) {
-      const distM = haversineMeters(lastFix.lat, lastFix.lon, latitude, longitude);
+      const distM = haversineMeters(
+        lastFix.lat,
+        lastFix.lon,
+        latitude,
+        longitude,
+      );
       const ms = distM / (dtMs / 1000);
 
       // Filter unrealistic spikes (e.g., GPS jumps)
       const maxHumanSpeedMs = 100; // ~224 mph
-      const reasonable = Number.isFinite(ms) && ms >= 0 && ms <= maxHumanSpeedMs;
+      const reasonable =
+        Number.isFinite(ms) && ms >= 0 && ms <= maxHumanSpeedMs;
 
       updateSpeed(reasonable ? ms : lastComputedSpeed);
     }
@@ -137,7 +145,11 @@ const watchOptions = {
 
 if ("geolocation" in navigator) {
   setStatus("Requesting GPS...");
-  navigator.geolocation.watchPosition(handlePosition, handleError, watchOptions);
+  navigator.geolocation.watchPosition(
+    handlePosition,
+    handleError,
+    watchOptions,
+  );
 } else {
   setStatus("Geolocation not supported on this device.");
 }

@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.8",
+    "@types/minimist": "^1.2.5",
     "@types/node": "^22.7.5",
     "serve": "^14.2.5",
     "ts-node": "^10.9.2",
