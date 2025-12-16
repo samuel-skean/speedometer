@@ -43,7 +43,8 @@ unitToggleBtn.addEventListener("click", () => {
 // Render the speed (expects m/s)
 function renderSpeed(ms) {
   const msValue = Number.isFinite(ms) && ms >= 0 ? ms : 0;
-  const value = currentUnit === Units.MPH ? msValue * MPS_TO_MPH : msValue * MPS_TO_KPH;
+  const value =
+    currentUnit === Units.MPH ? msValue * MPS_TO_MPH : msValue * MPS_TO_KPH;
 
   const clamped = Math.min(Math.max(value, 0), 999);
   const rounded = Math.round(clamped);
@@ -99,7 +100,11 @@ const watchOptions = {
 
 if ("geolocation" in navigator) {
   setStatus("Requesting GPS...");
-  navigator.geolocation.watchPosition(handlePosition, handleError, watchOptions);
+  navigator.geolocation.watchPosition(
+    handlePosition,
+    handleError,
+    watchOptions,
+  );
 } else {
   setStatus("Geolocation not supported on this device.");
 }
