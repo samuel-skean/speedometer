@@ -1,3 +1,26 @@
+## User
+
+Make it so the service worker follows redirects and caches the target of the redirect, not the redirect itself.
+
+**Tool Call: Find paths matching “`**/*service*worker*.*`”**
+Status: Completed
+
+```json
+{"offset":0,"current_matches_page":["/Users/samuel-skean/Coding/speedometer/service-worker.js"],"all_matches_len":1}
+```
+
+**Tool Call: Read file `service-worker.js`**
+Status: Completed
+
+```json
+{"Text":"/**\n * Offline-first service worker for Speedometer PWA.\n * Caches the app shell and serves cached responses when offline,\n * with a navigation fallback to index.html.\n */\n\nconst CACHE_VERSION = \"0.0.12\";\nconst CACHE_NAME = `speedometer-${CACHE_VERSION}`;\n\nconst ASSETS = [\n  \"/index.html\",\n  \"/app.js\",\n  \"/manifest.webmanifest\",\n  \"/icons/generated/icon-192.png\",\n  \"/icons/generated/icon-512.png\",\n];\n\n/**\n * On install, pre-cache core assets.\n */\nself.addEventListener(\"install\", (event) => {\n  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));\n  self.skipWaiting();\n});\n\n/**\n * On activate, purge old caches.\n */\nself.addEventListener(\"activate\", (event) => {\n  event.waitUntil(\n    caches\n      .keys()\n      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),\n  );\n  self.clients.claim();\n});\n\n/**\n * Fetch handler:\n * - Try cache first for same-origin requests; fall back to network.\n * - For navigation requests, fall back to cached index.html when offline.\n */\nself.addEventListener(\"fetch\", (event) => {\n  const { request } = event;\n  const url = new URL(request.url);\n\n  // Only handle same-origin requests\n  if (url.origin !== self.location.origin) {\n    return;\n  }\n\n  // Navigation requests: offline fallback to index.html\n  if (request.mode === \"navigate\") {\n    event.respondWith(\n      (async () => {\n        try {\n          // Try network first for navigations (to keep fresh)\n          const networkResponse = await fetch(request);\n          // iOS Safari: avoid serving redirected responses from SW\n          if (networkResponse.redirected) {\n            const finalResp = await fetch(networkResponse.url, { method: \"GET\" });\n            return finalResp;\n          }\n          // Optionally cache successful navigations (not strictly necessary)\n          return networkResponse;\n        } catch {\n          // Offline fallback\n          const cachedIndex = await caches.match(\"/index.html\");\n          // iOS Safari: avoid serving redirected responses from SW\n          if (cachedIndex && !cachedIndex.redirected) {\n            return cachedIndex;\n          }\n          return new Response(\"Offline\", { status: 503 });\n        }\n      })(),\n    );\n    return;\n  }\n\n  // Static assets and other requests: cache-first, then network\n  event.respondWith(\n    (async () => {\n      const cached = await caches.match(request);\n      if (cached && !cached.redirected) return cached;\n\n      try {\n        const networkResponse = await fetch(request);\n        // Cache a copy of successful GET responses (only 200/basic and non-redirected)\n        if (\n          request.method === \"GET\" &&\n          networkResponse.ok &&\n          networkResponse.status === 200 &&\n          networkResponse.type === \"basic\" &&\n          !networkResponse.redirected\n        ) {\n          const cache = await caches.open(CACHE_NAME);\n          cache.put(request, networkResponse.clone());\n        }\n        return networkResponse;\n      } catch {\n        // As a last resort, if the request was for an asset we know, serve it from cache\n        if (ASSETS.includes(url.pathname)) {\n          const fallback = await caches.match(request);\n          if (fallback && !fallback.redirected) return fallback;\n        }\n        return new Response(\"Offline\", { status: 503 });\n      }\n    })(),\n  );\n});\n"}
+```
+
+**Tool Call: service-worker.js**
+Status: Completed
+
+Diff: /Users/samuel-skean/Coding/speedometer/service-worker.js
+```
 /**
  * Offline-first service worker for Speedometer PWA.
  * Follows redirects and caches the final target, never a redirected response.
@@ -6,11 +29,10 @@
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.16";
+const CACHE_VERSION = "0.0.13";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS = [
-  "/",
   "/index.html",
   "/app.js",
   "/manifest.webmanifest",
@@ -184,3 +206,31 @@ self.addEventListener("fetch", (event) => {
     })(),
   );
 });
+
+```
+
+
+**Tool Call: Check project diagnostics**
+Status: Completed
+
+No errors or warnings found in the project.
+
+## Assistant
+
+I updated your service worker so it follows redirects and only caches the final target, never the redirect itself. When a redirect occurs, it caches the final response under both the original URL and the final URL (when same-origin). This ensures subsequent requests hit cache regardless of which URL is used.
+
+What I changed:
+- Added helpers to detect same-origin and to cache under both the original and final URLs.
+- Centralized network logic in `fetchFollowAndCacheGET`:
+  - If a response is redirected, it explicitly fetches the final URL and caches that response (under both original and final URLs).
+  - Only caches successful, same-origin, non-opaque responses.
+- Precache process now manually fetches assets and applies the redirect-following policy (instead of `cache.addAll` which can store redirects).
+- Navigation requests use the same redirect-following logic and fall back to cached `index.html` offline.
+- Cache-first for other GET requests, but if a cached entry is redirected, it re-fetches and stores the final target.
+
+File touched:
+- `service-worker.js` (cache version bumped to 0.0.13)
+
+Notes:
+- After deploying, you may need to reload twice for the new SW to take control (one load to install/activate, another for it to manage fetches). If you want immediate control, the code already calls `self.skipWaiting()` on install and `self.clients.claim()` on activate.
+
