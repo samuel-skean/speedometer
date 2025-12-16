@@ -18,7 +18,6 @@
         <style>
             :root {
                 color-scheme: dark light;
-                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
             }
             html,
             body {
@@ -42,7 +41,6 @@
                 display: grid;
                 place-items: center;
                 touch-action: none;
-                overscroll-behavior: none;
             }
             .container {
                 text-align: center;
@@ -85,7 +83,6 @@
             }
             body.pwa-installed #status {
                 bottom: calc(env(safe-area-inset-bottom) + 10vh);
-                top: auto;
             }
             button#unitToggle {
                 position: fixed;
@@ -114,7 +111,7 @@
 
         <!-- App logic -->
         <script src="pwa-detection.js"></script>
-        <script src="layout-adjustments.js"></script>
+
         <script src="app.js"></script>
         <!-- Register service worker -->
         <script>

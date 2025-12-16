@@ -6,7 +6,7 @@
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.16";
+const CACHE_VERSION = "0.0.17";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -119,13 +119,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key)),
-        ),
-      ),
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
   );
   self.clients.claim();
 });

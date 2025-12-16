@@ -2,7 +2,7 @@
  * pwa-detection.js
  *
  * Detects when the app is running as an installed PWA and toggles a "pwa-installed"
- * class on <html> and <body>. Applies the class as early as possible to avoid
+ * class on <body>. Applies the class as early as possible to avoid
  * layout flicker and keeps it in sync across lifecycle events.
  *
  * This script does not use an IIFE; it exposes a global `PWADetection` object
@@ -11,8 +11,7 @@
  */
 
 ((global) => {
-  const supportsMatchMedia =
-    typeof window !== "undefined" && typeof window.matchMedia === "function";
+  const supportsMatchMedia = typeof window !== "undefined" && typeof window.matchMedia === "function";
 
   const PWADetection = {
     /**
@@ -25,22 +24,14 @@
      */
     isPwaInstalled() {
       // Standard display-mode checks
-      const standalone =
-        supportsMatchMedia &&
-        window.matchMedia("(display-mode: standalone)").matches;
-      const minimalUi =
-        supportsMatchMedia &&
-        window.matchMedia("(display-mode: minimal-ui)").matches;
-      const fullscreen =
-        supportsMatchMedia &&
-        window.matchMedia("(display-mode: fullscreen)").matches;
+      const standalone = supportsMatchMedia && window.matchMedia("(display-mode: standalone)").matches;
+      const minimalUi = supportsMatchMedia && window.matchMedia("(display-mode: minimal-ui)").matches;
+      const fullscreen = supportsMatchMedia && window.matchMedia("(display-mode: fullscreen)").matches;
 
       // iOS-specific checks
-      const ua =
-        (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
       const isiOS = /iPhone|iPad|iPod/i.test(ua);
-      const hasStandaloneFlag =
-        typeof navigator !== "undefined" && "standalone" in navigator;
+      const hasStandaloneFlag = typeof navigator !== "undefined" && "standalone" in navigator;
       const iOSStandalone = hasStandaloneFlag && navigator.standalone === true;
 
       // Heuristic for iOS fullscreen (no browser chrome)
@@ -51,28 +42,19 @@
         typeof window.outerHeight === "number" &&
         Math.abs(window.outerHeight - window.innerHeight) <= 2;
 
-      return !!(
-        standalone ||
-        minimalUi ||
-        fullscreen ||
-        iOSStandalone ||
-        viewportNoChrome
-      );
+      return !!(standalone || minimalUi || fullscreen || iOSStandalone || viewportNoChrome);
     },
 
     /**
-     * Adds or removes the "pwa-installed" class on <html> and <body> based on detection.
+     * Adds or removes the "pwa-installed" class on <body> based on detection.
      */
     applyPwaClass() {
-      const html = document.documentElement;
       const body = document.body;
-      if (!html || !body) return;
+      if (!body) return;
 
       if (PWADetection.isPwaInstalled()) {
-        html.classList.add("pwa-installed");
         body.classList.add("pwa-installed");
       } else {
-        html.classList.remove("pwa-installed");
         body.classList.remove("pwa-installed");
       }
     },
@@ -100,7 +82,7 @@
      */
     init() {
       // Apply ASAP if DOM is available to minimize flicker
-      if (document.documentElement && document.body) {
+      if (document.body) {
         PWADetection.applyPwaClass();
       }
 
@@ -109,22 +91,13 @@
         PWADetection.setupDisplayModeListener();
 
         // Keep in sync across visibility and navigation lifecycle
-        document.addEventListener(
-          "visibilitychange",
-          PWADetection.applyPwaClass,
-        );
+        document.addEventListener("visibilitychange", PWADetection.applyPwaClass);
         window.addEventListener("pageshow", PWADetection.applyPwaClass);
-        window.addEventListener(
-          "orientationchange",
-          PWADetection.applyPwaClass,
-        );
+        window.addEventListener("orientationchange", PWADetection.applyPwaClass);
         window.addEventListener("resize", PWADetection.applyPwaClass);
       };
 
-      if (
-        document.readyState === "interactive" ||
-        document.readyState === "complete"
-      ) {
+      if (document.readyState === "interactive" || document.readyState === "complete") {
         run();
       } else {
         document.addEventListener("DOMContentLoaded", run, { once: true });

@@ -1,0 +1,2550 @@
+## User (checkpoint)
+
+Last I checked, it sure looked like there was some redundant code that set CSS that was already being set in CSS. Look for that kinda stuff and remove it.
+
+**Tool Call: List the `Users/samuel-skean/Coding/speedometer` directory's contents**
+Status: Failed
+
+Path Users/samuel-skean/Coding/speedometer not found in project
+
+**Tool Call: List the `Users/samuel-skean/Coding/speedometer` directory's contents**
+Status: Failed
+
+Path Users/samuel-skean/Coding/speedometer not found in project
+
+**Tool Call: List the `speedometer` directory's contents**
+Status: Completed
+
+# Folders:
+speedometer/.git
+speedometer/.github
+speedometer/certs
+speedometer/editor_llm_logs
+speedometer/icons
+speedometer/node_modules
+speedometer/scripts
+
+# Files:
+speedometer/.DS_Store
+speedometer/.gitignore
+speedometer/LICENSE
+speedometer/app.js
+speedometer/biome.json
+speedometer/index.html
+speedometer/layout-adjustments.js
+speedometer/manifest.webmanifest
+speedometer/package-lock.json
+speedometer/package.json
+speedometer/pwa-detection.js
+speedometer/service-worker.js
+speedometer/tsconfig.json
+speedometer/wrangler.toml
+
+
+**Tool Call: Read file `index.html`**
+Status: Completed
+
+```speedometer/index.html
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+                overscroll-behavior: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+                top: auto;
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script src="pwa-detection.js"></script>
+        <script src="layout-adjustments.js"></script>
+        <script src="app.js"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+```
+
+
+**Tool Call: Read file `app.js`**
+Status: Completed
+
+```speedometer/app.js
+/**
+ * Basic speedometer using the Geolocation API, simplified.
+ * - Uses ONLY native position.coords.speed (m/s).
+ * - No distance/time fallback when speed is unavailable.
+ * - Displays speed centered on screen; unit toggle between mph and km/h.
+ */
+
+// Elements
+const speedEl = document.getElementById("speed");
+const unitEl = document.getElementById("unit");
+const statusEl = document.getElementById("status");
+const unitToggleBtn = document.getElementById("unitToggle");
+
+// Units and conversion
+const Units = {
+  MPH: "mph",
+  KPH: "km/h",
+};
+const MPS_TO_MPH = 2.2369362920544;
+const MPS_TO_KPH = 3.6;
+
+// State
+let currentUnit = localStorage.getItem("speed-unit") || Units.MPH;
+let lastSpeedMs = null; // last known native speed (m/s), if any
+
+// UI setup
+function updateUnitUI() {
+  unitEl.textContent = currentUnit;
+  unitToggleBtn.textContent = currentUnit;
+}
+updateUnitUI();
+
+// Unit toggle
+unitToggleBtn.addEventListener("click", () => {
+  currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
+  localStorage.setItem("speed-unit", currentUnit);
+  updateUnitUI();
+
+  // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
+  renderSpeed(lastSpeedMs ?? 0);
+});
+
+// Render the speed (expects m/s)
+function renderSpeed(ms) {
+  const msValue = Number.isFinite(ms) && ms >= 0 ? ms : 0;
+  const value =
+    currentUnit === Units.MPH ? msValue * MPS_TO_MPH : msValue * MPS_TO_KPH;
+
+  const clamped = Math.min(Math.max(value, 0), 999);
+  const rounded = Math.round(clamped);
+  speedEl.textContent = String(rounded);
+}
+
+function setStatus(text) {
+  statusEl.textContent = text;
+}
+
+function handlePosition(pos) {
+  const { speed, accuracy } = pos.coords;
+
+  // Update speed only when native speed is provided and valid
+  if (Number.isFinite(speed) && speed >= 0) {
+    lastSpeedMs = speed;
+    renderSpeed(speed);
+  }
+
+  // Status/accuracy
+  if (Number.isFinite(accuracy)) {
+    setStatus(`Accuracy: ±${Math.round(accuracy)}m`);
+  } else {
+    setStatus("GPS fix acquired");
+  }
+}
+
+function handleError(err) {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      setStatus("Location permission denied. Enable it to see speed.");
+      break;
+    case err.POSITION_UNAVAILABLE:
+      setStatus("Location unavailable. Move to open sky for GPS.");
+      break;
+    case err.TIMEOUT:
+      setStatus("Location timeout. Trying again...");
+      break;
+    default:
+      setStatus(`Error: ${err.message}`);
+  }
+}
+
+// Initialize display to 0 until we get a valid speed
+renderSpeed(0);
+
+// Request high-accuracy GPS and frequent updates
+const watchOptions = {
+  enableHighAccuracy: true,
+  maximumAge: 1000, // accept 1s old cached positions
+  timeout: 10000, // 10s per fix
+};
+
+if ("geolocation" in navigator) {
+  setStatus("Requesting GPS...");
+  navigator.geolocation.watchPosition(
+    handlePosition,
+    handleError,
+    watchOptions,
+  );
+} else {
+  setStatus("Geolocation not supported on this device.");
+}
+
+```
+
+
+**Tool Call: Read file `layout-adjustments.js`**
+Status: Completed
+
+```speedometer/layout-adjustments.js
+/**
+ * layout-adjustments.js
+ *
+ * Sets a CSS variable (--status-top-offset) used to position the #status element
+ * accounting for device safe areas (notches, status bars). The value is expressed
+ * using CSS env(safe-area-inset-top) so the actual inset is resolved by the browser.
+ *
+ * This script is intentionally not wrapped in an IIFE. It exposes a small API on
+ * window.LayoutAdjustments and initializes itself when the DOM is ready.
+ */
+
+function getSafeAreaTopOffset() {
+  // Use a small spacing below the safe area to avoid visual overlap with OS UI.
+  return "calc(env(safe-area-inset-top) + 8px)";
+}
+
+/**
+ * Apply the offset to the root element as a CSS variable.
+ */
+function updateStatusOffset() {
+  document.documentElement.style.setProperty(
+    "--status-top-offset",
+    getSafeAreaTopOffset(),
+  );
+}
+
+/**
+ * Initialize and set up listeners to keep the offset fresh across viewport changes.
+ */
+function initLayoutAdjustments() {
+  updateStatusOffset();
+
+  // Recalculate on window resize and orientation changes
+  window.addEventListener("resize", updateStatusOffset, { passive: true });
+  window.addEventListener("orientationchange", updateStatusOffset, {
+    passive: true,
+  });
+
+  // If visualViewport is available, recalc when browser UI collapses/expands
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", updateStatusOffset, {
+      passive: true,
+    });
+  }
+}
+
+// Auto-init when DOM is ready
+if (
+  document.readyState === "interactive" ||
+  document.readyState === "complete"
+) {
+  initLayoutAdjustments();
+} else {
+  document.addEventListener("DOMContentLoaded", initLayoutAdjustments, {
+    once: true,
+  });
+}
+
+// Expose API globally
+window.LayoutAdjustments = {
+  updateStatusOffset,
+  initLayoutAdjustments,
+};
+
+```
+
+
+**Tool Call: Read file `pwa-detection.js`**
+Status: Completed
+
+```speedometer/pwa-detection.js
+/**
+ * pwa-detection.js
+ *
+ * Detects when the app is running as an installed PWA and toggles a "pwa-installed"
+ * class on <html> and <body>. Applies the class as early as possible to avoid
+ * layout flicker and keeps it in sync across lifecycle events.
+ *
+ * This script does not use an IIFE; it exposes a global `PWADetection` object
+ * and initializes immediately.
+ * Human edit: Lol at the above paragraph. But I'm done fighting it, it seems to work.
+ */
+
+((global) => {
+  const supportsMatchMedia =
+    typeof window !== "undefined" && typeof window.matchMedia === "function";
+
+  const PWADetection = {
+    /**
+     * Returns true if the app is running as an installed PWA.
+     *
+     * Checks:
+     * - CSS display-mode: standalone/minimal-ui/fullscreen (Chromium-based, some others)
+     * - iOS Safari: navigator.standalone
+     * - iOS heuristic: near-equal innerHeight and outerHeight suggesting no browser chrome
+     */
+    isPwaInstalled() {
+      // Standard display-mode checks
+      const standalone =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: standalone)").matches;
+      const minimalUi =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: minimal-ui)").matches;
+      const fullscreen =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: fullscreen)").matches;
+
+      // iOS-specific checks
+      const ua =
+        (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      const isiOS = /iPhone|iPad|iPod/i.test(ua);
+      const hasStandaloneFlag =
+        typeof navigator !== "undefined" && "standalone" in navigator;
+      const iOSStandalone = hasStandaloneFlag && navigator.standalone === true;
+
+      // Heuristic for iOS fullscreen (no browser chrome)
+      const viewportNoChrome =
+        typeof window !== "undefined" &&
+        isiOS &&
+        typeof window.innerHeight === "number" &&
+        typeof window.outerHeight === "number" &&
+        Math.abs(window.outerHeight - window.innerHeight) <= 2;
+
+      return !!(
+        standalone ||
+        minimalUi ||
+        fullscreen ||
+        iOSStandalone ||
+        viewportNoChrome
+      );
+    },
+
+    /**
+     * Adds or removes the "pwa-installed" class on <html> and <body> based on detection.
+     */
+    applyPwaClass() {
+      const html = document.documentElement;
+      const body = document.body;
+      if (!html || !body) return;
+
+      if (PWADetection.isPwaInstalled()) {
+        html.classList.add("pwa-installed");
+        body.classList.add("pwa-installed");
+      } else {
+        html.classList.remove("pwa-installed");
+        body.classList.remove("pwa-installed");
+      }
+    },
+
+    /**
+     * Listen for display-mode changes (supported on some browsers) and re-apply the class.
+     */
+    setupDisplayModeListener() {
+      if (!supportsMatchMedia) return;
+      const mq = window.matchMedia("(display-mode: standalone)");
+
+      // Modern API
+      if (mq && typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", PWADetection.applyPwaClass);
+      }
+      // Legacy API
+      else if (mq && typeof mq.addListener === "function") {
+        mq.addListener(PWADetection.applyPwaClass);
+      }
+    },
+
+    /**
+     * Initialize detection: apply the class immediately and set up listeners.
+     * Called right away and again on DOMContentLoaded to minimize layout flicker.
+     */
+    init() {
+      // Apply ASAP if DOM is available to minimize flicker
+      if (document.documentElement && document.body) {
+        PWADetection.applyPwaClass();
+      }
+
+      const run = () => {
+        PWADetection.applyPwaClass();
+        PWADetection.setupDisplayModeListener();
+
+        // Keep in sync across visibility and navigation lifecycle
+        document.addEventListener(
+          "visibilitychange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("pageshow", PWADetection.applyPwaClass);
+        window.addEventListener(
+          "orientationchange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("resize", PWADetection.applyPwaClass);
+      };
+
+      if (
+        document.readyState === "interactive" ||
+        document.readyState === "complete"
+      ) {
+        run();
+      } else {
+        document.addEventListener("DOMContentLoaded", run, { once: true });
+      }
+    },
+  };
+
+  // Export and initialize immediately
+  global.PWADetection = PWADetection;
+  PWADetection.init();
+})(window);
+
+```
+
+
+**Tool Call: Read file `service-worker.js`**
+Status: Completed
+
+```speedometer/service-worker.js
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.16";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/app.js",
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url) => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(cache, originalRequest, finalUrl, response) {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: Read file `manifest.webmanifest`**
+Status: Completed
+
+```speedometer/manifest.webmanifest
+{
+  "name": "Speedometer",
+  "short_name": "Speedo",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "orientation": "portrait",
+  "description": "A simple PWA that shows your current speed from GPS.",
+  "icons": [
+    {
+      "src": "icons/generated/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/generated/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
+```
+
+
+**Tool Call: No matches**
+Status: Completed
+
+```json
+{"offset":0,"current_matches_page":[],"all_matches_len":0}
+```
+
+**Tool Call: Search files for regex `status-top-offset|layout-adjustments\.js`**
+Status: Completed
+
+Showing matches 1-20 (there were more matches found; use offset: 20 to see next page):
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L109-113
+```
+
+If your layout uses a header bar that normally sits just below the browser address bar, you can set the offset to match that header’s top or height. For example:
+```/dev/null/layout-adjustments.js#L1-120
+(function () {
+  function updateAccuracyOffset() {
+```
+
+### L223-231
+```
+/* Allow finer control via a CSS variable if you have a header */
+:root {
+  --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+}
+
+.pwa-installed #status {
+  top: var(--status-top-offset);
+}
+```
+```
+
+### L232-236
+```
+
+Optional refinement if you have a header (so `#status` sits just below it):
+```/dev/null/layout-adjustments.js#L1-140
+(function () {
+  function updateStatusOffset() {
+```
+
+### L240-244
+```
+    if (!header || !isInstalled) {
+      // Fallback to safe area offset
+      document.documentElement.style.setProperty('--status-top-offset', 'calc(env(safe-area-inset-top) + 8px)');
+      return;
+    }
+```
+
+### L246-250
+```
+    const headerRect = header.getBoundingClientRect();
+    const offset = Math.max(0, headerRect.top + headerRect.height + 8);
+    document.documentElement.style.setProperty('--status-top-offset', `${offset}px`);
+  }
+
+```
+
+### L260-264
+```
+- Include `pwa-detection.js` early in your app’s bootstrap so the `pwa-installed` class is set before layout.
+- Ensure the CSS above is loaded (or adapt in your existing stylesheet).
+- If you have a header, include `layout-adjustments.js` and set the correct header selector.
+
+This will move `#status` up when running as an installed PWA, approximating the position it would be at if there were a browser address bar. If you can share your actual file paths, I’ll integrate these snippets directly into your project.
+```
+
+### L332-336
+```
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+```
+
+### L400-404
+```
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+            }
+            button#unitToggle {
+```
+
+### L501-505
+```
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+```
+
+### L569-573
+```
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+            }
+            button#unitToggle {
+```
+
+### L641-645
+```
+                    if (!isInstalled) {
+                        document.documentElement.style.setProperty(
+                            "--status-top-offset",
+                            "calc(env(safe-area-inset-top) + 8px)",
+                        );
+```
+
+### L652-656
+```
+                    if (!header) {
+                        document.documentElement.style.setProperty(
+                            "--status-top-offset",
+                            "calc(env(safe-area-inset-top) + 8px)",
+                        );
+```
+
+### L660-664
+```
+                    const rect = header.getBoundingClientRect();
+                    const offset = Math.max(0, rect.top + rect.height + 8);
+                    document.documentElement.style.setProperty("--status-top-offset", `${offset}px`);
+                }
+
+```
+
+### L704-710
+```
+
+Summary of changes:
+- Added `--status-top-offset` CSS variable and `.pwa-installed #status` rule in `index.html` to place the indicator near the top when installed.
+- Injected a small PWA detection script in `index.html` that adds the `pwa-installed` class to `html` and `body` using display-mode checks and iOS `navigator.standalone`.
+- Optional script in `index.html` to dynamically set `--status-top-offset` based on a header element (selector `.app-header`). If no header is present, it falls back to safe-area offset.
+
+Relevant snippets:
+```
+
+### L713-717
+```
+  :root {
+    color-scheme: dark light;
+    --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+  }
+  ...
+```
+
+### L726-730
+```
+  .pwa-installed #status {
+    bottom: auto;
+    top: var(--status-top-offset);
+  }
+</style>
+```
+
+### L775-779
+```
+      if (!isInstalled) {
+        document.documentElement.style.setProperty(
+          "--status-top-offset",
+          "calc(env(safe-area-inset-top) + 8px)",
+        );
+```
+
+### L784-788
+```
+      if (!header) {
+        document.documentElement.style.setProperty(
+          "--status-top-offset",
+          "calc(env(safe-area-inset-top) + 8px)",
+        );
+```
+
+### L792-796
+```
+      const rect = header.getBoundingClientRect();
+      const offset = Math.max(0, rect.top + rect.height + 8);
+      document.documentElement.style.setProperty("--status-top-offset", `${offset}px`);
+    }
+
+```
+
+### L840-844
+```
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+```
+
+
+**Tool Call: Search files for regex `style\.setProperty\(`**
+Status: Completed
+
+Showing matches 1-20 (there were more matches found; use offset: 20 to see next page):
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L67-71
+```
+    window.visualViewport.addEventListener('resize', () => {
+      // You can use visualViewport.height to adjust things dynamically if needed
+      // e.g., document.body.style.setProperty('--vv-height', `${window.visualViewport.height}px`);
+    });
+  }
+```
+
+### L125-129
+```
+    // Place indicator just below the header when installed
+    const offset = Math.max(0, headerRect.top + headerRect.height + 8 + safeTop);
+    document.documentElement.style.setProperty('--accuracy-top-offset', `${offset}px`);
+  }
+
+```
+
+### L240-244
+```
+    if (!header || !isInstalled) {
+      // Fallback to safe area offset
+      document.documentElement.style.setProperty('--status-top-offset', 'calc(env(safe-area-inset-top) + 8px)');
+      return;
+    }
+```
+
+### L246-250
+```
+    const headerRect = header.getBoundingClientRect();
+    const offset = Math.max(0, headerRect.top + headerRect.height + 8);
+    document.documentElement.style.setProperty('--status-top-offset', `${offset}px`);
+  }
+
+```
+
+### L640-644
+```
+                    // Fallback to safe area offset when not installed
+                    if (!isInstalled) {
+                        document.documentElement.style.setProperty(
+                            "--status-top-offset",
+                            "calc(env(safe-area-inset-top) + 8px)",
+```
+
+### L651-655
+```
+                    const header = document.querySelector(".app-header");
+                    if (!header) {
+                        document.documentElement.style.setProperty(
+                            "--status-top-offset",
+                            "calc(env(safe-area-inset-top) + 8px)",
+```
+
+### L660-664
+```
+                    const rect = header.getBoundingClientRect();
+                    const offset = Math.max(0, rect.top + rect.height + 8);
+                    document.documentElement.style.setProperty("--status-top-offset", `${offset}px`);
+                }
+
+```
+
+### L774-778
+```
+
+      if (!isInstalled) {
+        document.documentElement.style.setProperty(
+          "--status-top-offset",
+          "calc(env(safe-area-inset-top) + 8px)",
+```
+
+### L783-787
+```
+      const header = document.querySelector(".app-header");
+      if (!header) {
+        document.documentElement.style.setProperty(
+          "--status-top-offset",
+          "calc(env(safe-area-inset-top) + 8px)",
+```
+
+### L792-796
+```
+      const rect = header.getBoundingClientRect();
+      const offset = Math.max(0, rect.top + rect.height + 8);
+      document.documentElement.style.setProperty("--status-top-offset", `${offset}px`);
+    }
+
+```
+
+### L1103-1107
+```
+  // If the PWA installed class isn't present, always fallback to safe-area.
+  if (!isPwaInstalledClassPresent()) {
+    document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+    return;
+  }
+```
+
+### L1110-1114
+```
+  const headerOffset = computeHeaderOffset();
+  if (headerOffset) {
+    document.documentElement.style.setProperty("--status-top-offset", headerOffset);
+    return;
+  }
+```
+
+### L1115-1119
+```
+
+  // If no header, fallback to safe-area offset.
+  document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+}
+
+```
+
+### L1263-1267
+```
+  // Always use the safe-area offset; this positions #status appropriately in PWA mode
+  // and remains reasonable in non-PWA mode.
+  document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+}
+
+```
+
+### L1330-1334
+```
+
+function updateStatusOffset() {
+  document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+}
+```
+```
+
+### L1368-1372
+```
+  // Always use the safe-area offset; this positions #status appropriately in PWA mode
+  // and remains reasonable in non-PWA mode.
+  document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+}
+
+```
+
+### L1426-1430
+```
+
+function updateStatusOffset() {
+  document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+}
+```
+```
+
+### L2104-2108
+```
+ */
+function updateStatusOffset() {
+  document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+}
+
+```
+
+## Matches in speedometer/editor_llm_logs/Remove decimal from speed display
+
+### L272-276
+```
+
+```json
+{"Text":"/**\n * layout-adjustments.js\n *\n * Sets a CSS variable (--status-top-offset) used to position the #status element\n * accounting for device safe areas (notches, status bars). The value is expressed\n * using CSS env(safe-area-inset-top) so the actual inset is resolved by the browser.\n *\n * This script is intentionally not wrapped in an IIFE. It exposes a small API on\n * window.LayoutAdjustments and initializes itself when the DOM is ready.\n */\n\nfunction getSafeAreaTopOffset() {\n  // Use a small spacing below the safe area to avoid visual overlap with OS UI.\n  return \"calc(env(safe-area-inset-top) + 8px)\";\n}\n\n/**\n * Apply the offset to the root element as a CSS variable.\n */\nfunction updateStatusOffset() {\n  document.documentElement.style.setProperty(\n    \"--status-top-offset\",\n    getSafeAreaTopOffset(),\n  );\n}\n\n/**\n * Initialize and set up listeners to keep the offset fresh across viewport changes.\n */\nfunction initLayoutAdjustments() {\n  updateStatusOffset();\n\n  // Recalculate on window resize and orientation changes\n  window.addEventListener(\"resize\", updateStatusOffset, { passive: true });\n  window.addEventListener(\"orientationchange\", updateStatusOffset, {\n    passive: true,\n  });\n\n  // If visualViewport is available, recalc when browser UI collapses/expands\n  if (window.visualViewport) {\n    window.visualViewport.addEventListener(\"resize\", updateStatusOffset, {\n      passive: true,\n    });\n  }\n}\n\n// Auto-init when DOM is ready\nif (\n  document.readyState === \"interactive\" ||\n  document.readyState === \"complete\"\n) {\n  initLayoutAdjustments();\n} else {\n  document.addEventListener(\"DOMContentLoaded\", initLayoutAdjustments, {\n    once: true,\n  });\n}\n\n// Expose API globally\nwindow.LayoutAdjustments = {\n  updateStatusOffset,\n  initLayoutAdjustments,\n};\n"}
+```
+
+```
+
+### L1339-1343
+```
+    if (!header || !isInstalled) {
+      // Fallback to safe area offset
+      document.documentElement.style.setProperty('--status-top-offset', 'calc(env(safe-area-inset-top) + 8px)');
+      return;
+    }
+```
+
+
+**Tool Call: Search files for regex `LayoutAdjustments`**
+Status: Completed
+
+Found 18 matches:
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L1118-1122
+```
+}
+
+function initLayoutAdjustments() {
+  // Initial computation after DOM is ready
+  updateStatusOffset();
+```
+
+### L1139-1151
+```
+// Run initialization after DOM is loaded
+if (document.readyState === "interactive" || document.readyState === "complete") {
+  initLayoutAdjustments();
+} else {
+  document.addEventListener("DOMContentLoaded", initLayoutAdjustments, { once: true });
+}
+
+// Export functions to the global namespace if needed elsewhere
+window.LayoutAdjustments = {
+  updateStatusOffset,
+  initLayoutAdjustments,
+};
+
+```
+
+### L1183-1189
+```
+
+- layout-adjustments.js
+  - Provides `window.LayoutAdjustments` with:
+    - `updateStatusOffset()`
+    - `initLayoutAdjustments()`
+  - Computes and sets `--status-top-offset`:
+    - If not installed, uses `calc(env(safe-area-inset-top) + 8px)`.
+```
+
+### L1220-1224
+```
+
+```/Users/samuel-skean/Coding/speedometer/layout-adjustments.js#L1-85
+(code implementing LayoutAdjustments and auto-init)
+```
+
+```
+
+### L1266-1270
+```
+}
+
+function initLayoutAdjustments() {
+  // Initial computation after DOM is ready
+  updateStatusOffset();
+```
+
+### L1287-1299
+```
+// Run initialization after DOM is loaded
+if (document.readyState === "interactive" || document.readyState === "complete") {
+  initLayoutAdjustments();
+} else {
+  document.addEventListener("DOMContentLoaded", initLayoutAdjustments, { once: true });
+}
+
+// Export functions to the global namespace if needed elsewhere
+window.LayoutAdjustments = {
+  updateStatusOffset,
+  initLayoutAdjustments,
+};
+
+```
+
+### L1371-1375
+```
+}
+
+function initLayoutAdjustments() {
+  // Initial computation after DOM is ready
+  updateStatusOffset();
+```
+
+### L1392-1404
+```
+// Run initialization after DOM is loaded
+if (document.readyState === "interactive" || document.readyState === "complete") {
+  initLayoutAdjustments();
+} else {
+  document.addEventListener("DOMContentLoaded", initLayoutAdjustments, { once: true });
+}
+
+// Export functions to the global namespace if needed elsewhere
+window.LayoutAdjustments = {
+  updateStatusOffset,
+  initLayoutAdjustments,
+};
+
+```
+
+### L1417-1421
+```
+- Always sets `--status-top-offset` to `calc(env(safe-area-inset-top) + 8px)`.
+- Keeps the initialization and event listeners to recompute on DOMContentLoaded, window resize, and visualViewport resize.
+- Exposes `window.LayoutAdjustments.updateStatusOffset` and `initLayoutAdjustments`.
+
+Snippet:
+```
+
+### L2092-2096
+```
+ *
+ * This script is intentionally not wrapped in an IIFE. It exposes a small API on
+ * window.LayoutAdjustments and initializes itself when the DOM is ready.
+ */
+
+```
+
+### L2110-2114
+```
+ * Initialize and set up listeners to keep the offset fresh across viewport changes.
+ */
+function initLayoutAdjustments() {
+  updateStatusOffset();
+
+```
+
+### L2125-2137
+```
+// Auto-init when DOM is ready
+if (document.readyState === "interactive" || document.readyState === "complete") {
+  initLayoutAdjustments();
+} else {
+  document.addEventListener("DOMContentLoaded", initLayoutAdjustments, { once: true });
+}
+
+// Expose API globally
+window.LayoutAdjustments = {
+  updateStatusOffset,
+  initLayoutAdjustments,
+};
+
+```
+
+## Matches in speedometer/editor_llm_logs/Remove decimal from speed display
+
+### L272-276
+```
+
+```json
+{"Text":"/**\n * layout-adjustments.js\n *\n * Sets a CSS variable (--status-top-offset) used to position the #status element\n * accounting for device safe areas (notches, status bars). The value is expressed\n * using CSS env(safe-area-inset-top) so the actual inset is resolved by the browser.\n *\n * This script is intentionally not wrapped in an IIFE. It exposes a small API on\n * window.LayoutAdjustments and initializes itself when the DOM is ready.\n */\n\nfunction getSafeAreaTopOffset() {\n  // Use a small spacing below the safe area to avoid visual overlap with OS UI.\n  return \"calc(env(safe-area-inset-top) + 8px)\";\n}\n\n/**\n * Apply the offset to the root element as a CSS variable.\n */\nfunction updateStatusOffset() {\n  document.documentElement.style.setProperty(\n    \"--status-top-offset\",\n    getSafeAreaTopOffset(),\n  );\n}\n\n/**\n * Initialize and set up listeners to keep the offset fresh across viewport changes.\n */\nfunction initLayoutAdjustments() {\n  updateStatusOffset();\n\n  // Recalculate on window resize and orientation changes\n  window.addEventListener(\"resize\", updateStatusOffset, { passive: true });\n  window.addEventListener(\"orientationchange\", updateStatusOffset, {\n    passive: true,\n  });\n\n  // If visualViewport is available, recalc when browser UI collapses/expands\n  if (window.visualViewport) {\n    window.visualViewport.addEventListener(\"resize\", updateStatusOffset, {\n      passive: true,\n    });\n  }\n}\n\n// Auto-init when DOM is ready\nif (\n  document.readyState === \"interactive\" ||\n  document.readyState === \"complete\"\n) {\n  initLayoutAdjustments();\n} else {\n  document.addEventListener(\"DOMContentLoaded\", initLayoutAdjustments, {\n    once: true,\n  });\n}\n\n// Expose API globally\nwindow.LayoutAdjustments = {\n  updateStatusOffset,\n  initLayoutAdjustments,\n};\n"}
+```
+
+```
+
+## Matches in speedometer/editor_llm_logs/Simplify speedometer app code
+
+### L51-52
+```
+{"Text":"/**\n * layout-adjustments.js\n *\n * Sets a CSS variable (--status-top-offset) used to position the #status element\n * accounting for device safe areas (notches, status bars). The value is expressed\n * using CSS env(safe-area-inset-top) so the actual inset is resolved by the browser.\n *\n * This script is intentionally not wrapped in an IIFE. It exposes a small API on\n * window.LayoutAdjustments and initializes itself when the DOM is ready.\n */\n\nfunction getSafeAreaTopOffset() {\n  // Use a small spacing below the safe area to avoid visual overlap with OS UI.\n  return \"calc(env(safe-area-inset-top) + 8px)\";\n}\n\n/**\n * Apply the offset to the root element as a CSS variable.\n */\nfunction updateStatusOffset() {\n  document.documentElement.style.setProperty(\n    \"--status-top-offset\",\n    getSafeAreaTopOffset(),\n  );\n}\n\n/**\n * Initialize and set up listeners to keep the offset fresh across viewport changes.\n */\nfunction initLayoutAdjustments() {\n  updateStatusOffset();\n\n  // Recalculate on window resize and orientation changes\n  window.addEventListener(\"resize\", updateStatusOffset, { passive: true });\n  window.addEventListener(\"orientationchange\", updateStatusOffset, {\n    passive: true,\n  });\n\n  // If visualViewport is available, recalc when browser UI collapses/expands\n  if (window.visualViewport) {\n    window.visualViewport.addEventListener(\"resize\", updateStatusOffset, {\n      passive: true,\n    });\n  }\n}\n\n// Auto-init when DOM is ready\nif (\n  document.readyState === \"interactive\" ||\n  document.readyState === \"complete\"\n) {\n  initLayoutAdjustments();\n} else {\n  document.addEventListener(\"DOMContentLoaded\", initLayoutAdjustments, {\n    once: true,\n  });\n}\n\n// Expose API globally\nwindow.LayoutAdjustments = {\n  updateStatusOffset,\n  initLayoutAdjustments,\n};\n"}
+```
+```
+
+## Matches in speedometer/layout-adjustments.js
+
+### L2-9
+```
+ * layout-adjustments.js
+ *
+ * Sets a CSS variable (--status-top-offset) used to position the #status element
+ * accounting for device safe areas (notches, status bars). The value is expressed
+ * using CSS env(safe-area-inset-top) so the actual inset is resolved by the browser.
+ *
+ * This script is intentionally not wrapped in an IIFE. It exposes a small API on
+ * window.LayoutAdjustments and initializes itself when the DOM is ready.
+```
+
+### function initLayoutAdjustments() › L30-40
+```
+function initLayoutAdjustments() {
+  updateStatusOffset();
+
+  // Recalculate on window resize and orientation changes
+  window.addEventListener("resize", updateStatusOffset, { passive: true });
+  window.addEventListener("orientationchange", updateStatusOffset, {
+    passive: true,
+  });
+
+  // If visualViewport is available, recalc when browser UI collapses/expands
+  if (window.visualViewport) {
+```
+
+5 lines remaining in ancestor node. Read the file to see all.
+
+### L51-57
+```
+) {
+  initLayoutAdjustments();
+} else {
+  document.addEventListener("DOMContentLoaded", initLayoutAdjustments, {
+    once: true,
+  });
+}
+```
+
+### L60-63
+```
+window.LayoutAdjustments = {
+  updateStatusOffset,
+  initLayoutAdjustments,
+};
+```
+
+
+**Tool Call: Search files for regex `\.style\.`**
+Status: Completed
+
+Found 1 matches:
+
+## Matches in speedometer/layout-adjustments.js
+
+### function updateStatusOffset() › L20-25
+```
+function updateStatusOffset() {
+  document.documentElement.style.setProperty(
+    "--status-top-offset",
+    getSafeAreaTopOffset(),
+  );
+}
+```
+
+
+**Tool Call: index.html**
+Status: Completed
+
+Diff: index.html
+```
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+                top: auto;
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script src="pwa-detection.js"></script>
+
+        <script src="app.js"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+```
+
+
+**Tool Call: Delete “`speedometer/layout-adjustments.js`”**
+Status: Completed
+
+Deleted speedometer/layout-adjustments.js
+
+**Tool Call: index.html**
+Status: Completed
+
+Diff: index.html
+```
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script src="pwa-detection.js"></script>
+
+        <script src="app.js"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+```
+
+
+**Tool Call: Read file `index.html`**
+Status: Completed
+
+```speedometer/index.html
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script src="pwa-detection.js"></script>
+
+        <script src="app.js"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+```
+
+
+**Tool Call: Search files for regex `pwa-installed`**
+Status: Completed
+
+Showing matches 1-20 (there were more matches found; use offset: 20 to see next page):
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L21-25
+```
+Key ideas:
+- Detect installed PWA via CSS media `display-mode: standalone` and `navigator.standalone` for iOS.
+- Add a `pwa-installed` class to the `body` so you can toggle layout differences in CSS.
+- Use `env(safe-area-inset-top)` to respect notches and status bars.
+- Optionally use `window.visualViewport` to refine the offset when the browser UI (address bar) collapses or expands.
+```
+
+### L44-52
+```
+  function applyPwaClass() {
+    if (isPwaInstalled()) {
+      document.documentElement.classList.add('pwa-installed');
+      document.body.classList.add('pwa-installed');
+    } else {
+      document.documentElement.classList.remove('pwa-installed');
+      document.body.classList.remove('pwa-installed');
+    }
+  }
+```
+
+### L86-90
+```
+/* If your “move up” means placing it nearer the top when installed,
+   use a top offset that accounts for safe areas and typical status bar height */
+.pwa-installed .gps-accuracy-indicator {
+  bottom: auto;
+  top: calc(env(safe-area-inset-top) + 8px); /* Nudged below system UI */
+```
+
+### L100-104
+```
+}
+
+.pwa-installed .gps-accuracy-indicator {
+  top: var(--accuracy-top-offset);
+}
+```
+
+### L114-118
+```
+    // If you have a header element that sits below the address bar:
+    const header = document.querySelector('.app-header');
+    const isInstalled = document.body.classList.contains('pwa-installed');
+
+    if (!header) return;
+```
+
+### L139-143
+```
+
+How to wire this up:
+- Include `pwa-detection.js` early (before rendering or in your app bootstrap) so the `pwa-installed` class is available for CSS.
+- Ensure your accuracy indicator element uses the `.gps-accuracy-indicator` class in your HTML/JS framework.
+- If you have a header element, add `.app-header` or update the selectors accordingly.
+```
+
+### L160-165
+```
+
+What you’ll add:
+- A lightweight PWA detection script that toggles a `pwa-installed` class on `body`/`html`.
+- CSS rules targeting `#status` to move it up when `pwa-installed` is present, accounting for safe areas.
+- Optional layout refinement to position `#status` just below your header (if you have one).
+
+```
+
+### L179-187
+```
+    const body = document.body;
+    if (isPwaInstalled()) {
+      el.classList.add('pwa-installed');
+      body.classList.add('pwa-installed');
+    } else {
+      el.classList.remove('pwa-installed');
+      body.classList.remove('pwa-installed');
+    }
+  }
+```
+
+### L216-220
+```
+
+/* When installed as a PWA, move it up to where it would sit with an address bar */
+.pwa-installed #status {
+  bottom: auto;
+  top: calc(env(safe-area-inset-top) + 8px); /* below status/notch area */
+```
+
+### L226-230
+```
+}
+
+.pwa-installed #status {
+  top: var(--status-top-offset);
+}
+```
+
+### L236-240
+```
+  function updateStatusOffset() {
+    const header = document.querySelector('.app-header'); // change to your header selector
+    const isInstalled = document.body.classList.contains('pwa-installed');
+
+    if (!header || !isInstalled) {
+```
+
+### L258-262
+```
+
+How to wire it up:
+- Include `pwa-detection.js` early in your app’s bootstrap so the `pwa-installed` class is set before layout.
+- Ensure the CSS above is loaded (or adapt in your existing stylesheet).
+- If you have a header, include `layout-adjustments.js` and set the correct header selector.
+```
+
+### L398-402
+```
+                opacity: 0.7;
+            }
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+```
+
+### L443-451
+```
+                    const body = document.body;
+                    if (isPwaInstalled()) {
+                        el.classList.add("pwa-installed");
+                        body.classList.add("pwa-installed");
+                    } else {
+                        el.classList.remove("pwa-installed");
+                        body.classList.remove("pwa-installed");
+                    }
+                }
+```
+
+### L567-571
+```
+                opacity: 0.7;
+            }
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+```
+
+### L612-620
+```
+                    const body = document.body;
+                    if (isPwaInstalled()) {
+                        el.classList.add("pwa-installed");
+                        body.classList.add("pwa-installed");
+                    } else {
+                        el.classList.remove("pwa-installed");
+                        body.classList.remove("pwa-installed");
+                    }
+                }
+```
+
+### L635-640
+```
+                    // Only adjust when installed as PWA (class applied by previous script)
+                    const isInstalled =
+                        document.documentElement.classList.contains("pwa-installed") ||
+                        document.body.classList.contains("pwa-installed");
+
+                    // Fallback to safe area offset when not installed
+```
+
+### L704-709
+```
+
+Summary of changes:
+- Added `--status-top-offset` CSS variable and `.pwa-installed #status` rule in `index.html` to place the indicator near the top when installed.
+- Injected a small PWA detection script in `index.html` that adds the `pwa-installed` class to `html` and `body` using display-mode checks and iOS `navigator.standalone`.
+- Optional script in `index.html` to dynamically set `--status-top-offset` based on a header element (selector `.app-header`). If no header is present, it falls back to safe-area offset.
+
+```
+
+### L724-728
+```
+    opacity: 0.7;
+  }
+  .pwa-installed #status {
+    bottom: auto;
+    top: var(--status-top-offset);
+```
+
+### L747-755
+```
+      const body = document.body;
+      if (isPwaInstalled()) {
+        el.classList.add("pwa-installed");
+        body.classList.add("pwa-installed");
+      } else {
+        el.classList.remove("pwa-installed");
+        body.classList.remove("pwa-installed");
+      }
+    }
+```
+
+
+**Tool Call: pwa-detection.js**
+Status: Completed
+
+Diff: pwa-detection.js
+```
+/**
+ * pwa-detection.js
+ *
+ * Detects when the app is running as an installed PWA and toggles a "pwa-installed"
+ * class on <body>. Applies the class as early as possible to avoid
+ * layout flicker and keeps it in sync across lifecycle events.
+ *
+ * This script does not use an IIFE; it exposes a global `PWADetection` object
+ * and initializes immediately.
+ * Human edit: Lol at the above paragraph. But I'm done fighting it, it seems to work.
+ */
+
+((global) => {
+  const supportsMatchMedia = typeof window !== "undefined" && typeof window.matchMedia === "function";
+
+  const PWADetection = {
+    /**
+     * Returns true if the app is running as an installed PWA.
+     *
+     * Checks:
+     * - CSS display-mode: standalone/minimal-ui/fullscreen (Chromium-based, some others)
+     * - iOS Safari: navigator.standalone
+     * - iOS heuristic: near-equal innerHeight and outerHeight suggesting no browser chrome
+     */
+    isPwaInstalled() {
+      // Standard display-mode checks
+      const standalone = supportsMatchMedia && window.matchMedia("(display-mode: standalone)").matches;
+      const minimalUi = supportsMatchMedia && window.matchMedia("(display-mode: minimal-ui)").matches;
+      const fullscreen = supportsMatchMedia && window.matchMedia("(display-mode: fullscreen)").matches;
+
+      // iOS-specific checks
+      const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      const isiOS = /iPhone|iPad|iPod/i.test(ua);
+      const hasStandaloneFlag = typeof navigator !== "undefined" && "standalone" in navigator;
+      const iOSStandalone = hasStandaloneFlag && navigator.standalone === true;
+
+      // Heuristic for iOS fullscreen (no browser chrome)
+      const viewportNoChrome =
+        typeof window !== "undefined" &&
+        isiOS &&
+        typeof window.innerHeight === "number" &&
+        typeof window.outerHeight === "number" &&
+        Math.abs(window.outerHeight - window.innerHeight) <= 2;
+
+      return !!(standalone || minimalUi || fullscreen || iOSStandalone || viewportNoChrome);
+    },
+
+    /**
+     * Adds or removes the "pwa-installed" class on <body> based on detection.
+     */
+    applyPwaClass() {
+      const body = document.body;
+      if (!body) return;
+
+      if (PWADetection.isPwaInstalled()) {
+        body.classList.add("pwa-installed");
+      } else {
+        body.classList.remove("pwa-installed");
+      }
+    },
+
+    /**
+     * Listen for display-mode changes (supported on some browsers) and re-apply the class.
+     */
+    setupDisplayModeListener() {
+      if (!supportsMatchMedia) return;
+      const mq = window.matchMedia("(display-mode: standalone)");
+
+      // Modern API
+      if (mq && typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", PWADetection.applyPwaClass);
+      }
+      // Legacy API
+      else if (mq && typeof mq.addListener === "function") {
+        mq.addListener(PWADetection.applyPwaClass);
+      }
+    },
+
+    /**
+     * Initialize detection: apply the class immediately and set up listeners.
+     * Called right away and again on DOMContentLoaded to minimize layout flicker.
+     */
+    init() {
+      // Apply ASAP if DOM is available to minimize flicker
+      if (document.body) {
+        PWADetection.applyPwaClass();
+      }
+
+      const run = () => {
+        PWADetection.applyPwaClass();
+        PWADetection.setupDisplayModeListener();
+
+        // Keep in sync across visibility and navigation lifecycle
+        document.addEventListener("visibilitychange", PWADetection.applyPwaClass);
+        window.addEventListener("pageshow", PWADetection.applyPwaClass);
+        window.addEventListener("orientationchange", PWADetection.applyPwaClass);
+        window.addEventListener("resize", PWADetection.applyPwaClass);
+      };
+
+      if (document.readyState === "interactive" || document.readyState === "complete") {
+        run();
+      } else {
+        document.addEventListener("DOMContentLoaded", run, { once: true });
+      }
+    },
+  };
+
+  // Export and initialize immediately
+  global.PWADetection = PWADetection;
+  PWADetection.init();
+})(window);
+
+```
+
+
+**Tool Call: Check diagnostics for `speedometer/index.html`**
+Status: Completed
+
+File doesn't have errors or warnings!
+
+**Tool Call: Check project diagnostics**
+Status: Completed
+
+No errors or warnings found in the project.
+
+**Tool Call: Search files for regex `--status-top-offset`**
+Status: Completed
+
+Showing matches 1-20 (there were more matches found; use offset: 20 to see next page):
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L223-231
+```
+/* Allow finer control via a CSS variable if you have a header */
+:root {
+  --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+}
+
+.pwa-installed #status {
+  top: var(--status-top-offset);
+}
+```
+```
+
+### L240-244
+```
+    if (!header || !isInstalled) {
+      // Fallback to safe area offset
+      document.documentElement.style.setProperty('--status-top-offset', 'calc(env(safe-area-inset-top) + 8px)');
+      return;
+    }
+```
+
+### L246-250
+```
+    const headerRect = header.getBoundingClientRect();
+    const offset = Math.max(0, headerRect.top + headerRect.height + 8);
+    document.documentElement.style.setProperty('--status-top-offset', `${offset}px`);
+  }
+
+```
+
+### L332-336
+```
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+```
+
+### L400-404
+```
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+            }
+            button#unitToggle {
+```
+
+### L501-505
+```
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+```
+
+### L569-573
+```
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+            }
+            button#unitToggle {
+```
+
+### L641-645
+```
+                    if (!isInstalled) {
+                        document.documentElement.style.setProperty(
+                            "--status-top-offset",
+                            "calc(env(safe-area-inset-top) + 8px)",
+                        );
+```
+
+### L652-656
+```
+                    if (!header) {
+                        document.documentElement.style.setProperty(
+                            "--status-top-offset",
+                            "calc(env(safe-area-inset-top) + 8px)",
+                        );
+```
+
+### L660-664
+```
+                    const rect = header.getBoundingClientRect();
+                    const offset = Math.max(0, rect.top + rect.height + 8);
+                    document.documentElement.style.setProperty("--status-top-offset", `${offset}px`);
+                }
+
+```
+
+### L704-710
+```
+
+Summary of changes:
+- Added `--status-top-offset` CSS variable and `.pwa-installed #status` rule in `index.html` to place the indicator near the top when installed.
+- Injected a small PWA detection script in `index.html` that adds the `pwa-installed` class to `html` and `body` using display-mode checks and iOS `navigator.standalone`.
+- Optional script in `index.html` to dynamically set `--status-top-offset` based on a header element (selector `.app-header`). If no header is present, it falls back to safe-area offset.
+
+Relevant snippets:
+```
+
+### L713-717
+```
+  :root {
+    color-scheme: dark light;
+    --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+  }
+  ...
+```
+
+### L726-730
+```
+  .pwa-installed #status {
+    bottom: auto;
+    top: var(--status-top-offset);
+  }
+</style>
+```
+
+### L775-779
+```
+      if (!isInstalled) {
+        document.documentElement.style.setProperty(
+          "--status-top-offset",
+          "calc(env(safe-area-inset-top) + 8px)",
+        );
+```
+
+### L784-788
+```
+      if (!header) {
+        document.documentElement.style.setProperty(
+          "--status-top-offset",
+          "calc(env(safe-area-inset-top) + 8px)",
+        );
+```
+
+### L792-796
+```
+      const rect = header.getBoundingClientRect();
+      const offset = Math.max(0, rect.top + rect.height + 8);
+      document.documentElement.style.setProperty("--status-top-offset", `${offset}px`);
+    }
+
+```
+
+### L840-844
+```
+            :root {
+                color-scheme: dark light;
+                --status-top-offset: calc(env(safe-area-inset-top) + 8px);
+            }
+            html,
+```
+
+### L908-912
+```
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+            }
+            button#unitToggle {
+```
+
+### L1067-1071
+```
+ * layout-adjustments.js
+ *
+ * Sets a CSS variable (--status-top-offset) used to position the #status element
+ * when the app is installed as a PWA. This is a non-IIFE module that exposes
+ * functions and registers event listeners at the top level.
+```
+
+### L1103-1107
+```
+  // If the PWA installed class isn't present, always fallback to safe-area.
+  if (!isPwaInstalledClassPresent()) {
+    document.documentElement.style.setProperty("--status-top-offset", getSafeAreaTopOffset());
+    return;
+  }
+```
+
+
+**Tool Call: service-worker.js**
+Status: Completed
+
+Diff: service-worker.js
+```
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.17";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/app.js",
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url) => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(cache, originalRequest, finalUrl, response) {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+## Assistant
+
+I hunted down and removed the redundant places where CSS was being set twice or via JS when plain CSS already covered it. Here’s what I changed:
+
+What I removed or simplified
+- Removed unused CSS variable and its updater script:
+  - Deleted `layout-adjustments.js` (it only set `--status-top-offset`, which wasn’t used anymore).
+  - Removed its `<script src="layout-adjustments.js"></script>` include from `index.html`.
+  - Dropped the `--status-top-offset` definition from `:root` in `index.html`.
+- Removed duplicated CSS rule:
+  - `overscroll-behavior: none;` was applied to both `html, body` and `body`. Kept it on `html, body` and removed the duplicate on `body`.
+- Simplified PWA class toggling:
+  - `pwa-detection.js` used to add/remove `pwa-installed` on both `html` and `body`. Now it only toggles the class on `body` (your CSS targets `body.pwa-installed #status`, so setting both was redundant noise).
+
+Service worker cache bump
+- Bumped the service worker cache version (`0.0.16` → `0.0.17`) so clients pick up the updated HTML and script references without stale caching. A normal reload should update; if not, a hard refresh will.
+
+Files touched
+- `index.html` (removed the CSS var, duplicate `overscroll-behavior`, and the `layout-adjustments.js` script include)
+- `pwa-detection.js` (only toggles class on `body` now)
+- Deleted `layout-adjustments.js`
+- `service-worker.js` (cache version bump)
+
+Health check
+- Project diagnostics are clean with no errors or warnings.
+
+If you want, I can also:
+- Extract the inline CSS in `index.html` to a standalone stylesheet for easier maintenance.
+- Remove any legacy references lingering in the `editor_llm_logs` folder if you want to keep the repo tidy.
+
