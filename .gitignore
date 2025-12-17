@@ -7,5 +7,7 @@ node_modules/
 # Generated icons
 icons/generated/
 
+dist/
+
 # Optional: ignore local development certificates
 certs/
