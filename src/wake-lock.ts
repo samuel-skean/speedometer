@@ -10,9 +10,10 @@ export class WakeLockManager {
   private wakeLock: WakeLockSentinel | null = null;
   private isSupported: boolean;
   private onStatusChange?: (message: string) => void;
+  private visibilityChangeHandler: (() => void) | null = null;
 
   constructor(onStatusChange?: (message: string) => void) {
-    this.isSupported = "wakeLock" in navigator;
+    this.isSupported = WakeLockManager.isSupported();
     this.onStatusChange = onStatusChange;
   }
 
@@ -77,11 +78,26 @@ export class WakeLockManager {
     this.requestWakeLock();
 
     // Re-acquire wake lock when page becomes visible again
-    document.addEventListener("visibilitychange", () => {
+    this.visibilityChangeHandler = () => {
       if (document.visibilityState === "visible" && !this.wakeLock) {
         this.requestWakeLock();
       }
-    });
+    };
+    document.addEventListener("visibilitychange", this.visibilityChangeHandler);
+  }
+
+  /**
+   * Clean up resources and remove event listeners.
+   */
+  cleanup(): void {
+    if (this.visibilityChangeHandler) {
+      document.removeEventListener(
+        "visibilitychange",
+        this.visibilityChangeHandler,
+      );
+      this.visibilityChangeHandler = null;
+    }
+    this.releaseWakeLock();
   }
 
   private notifyStatus(message: string): void {
