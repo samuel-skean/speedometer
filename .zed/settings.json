@@ -1,0 +1,4 @@
+{
+  "preferred_line_length": 80,
+  "formatter": { "language_server": { "name": "biome" } }
+}
