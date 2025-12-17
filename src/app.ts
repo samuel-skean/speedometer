@@ -3,7 +3,10 @@
  * - Uses ONLY native position.coords.speed (m/s).
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
+ * - Keeps screen awake using the Screen Wake Lock API.
  */
+
+import { WakeLockManager } from "./wake-lock";
 
 const speedEl = document.getElementById("speed") as HTMLDivElement | null;
 const unitEl = document.getElementById("unit") as HTMLDivElement | null;
@@ -24,6 +27,7 @@ const MPS_TO_KPH = 3.6;
 let currentUnit: Unit =
   (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
+let wakeLockManager: WakeLockManager | null = null;
 
 function updateUnitUI(): void {
   if (unitEl) unitEl.textContent = currentUnit;
@@ -81,6 +85,12 @@ function handleError(err: GeolocationPositionError): void {
 
 function init(): void {
   updateUnitUI();
+
+  // Initialize wake lock to keep screen alive
+  wakeLockManager = new WakeLockManager((message) => {
+    console.log("Wake Lock:", message);
+  });
+  wakeLockManager.init();
 
   // Unit toggle
   unitToggleBtn?.addEventListener("click", () => {
