@@ -37,14 +37,16 @@ unitToggleBtn.addEventListener("click", () => {
   updateUnitUI();
 
   // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
-  renderSpeed(lastSpeedMs ?? 0);
+  renderSpeed(lastSpeedMs);
 });
 
 // Render the speed (expects m/s)
 function renderSpeed(ms) {
-  const msValue = Number.isFinite(ms) && ms >= 0 ? ms : 0;
-  const value =
-    currentUnit === Units.MPH ? msValue * MPS_TO_MPH : msValue * MPS_TO_KPH;
+  if (!Number.isFinite(ms) || ms < 0) {
+    setStatus("FIXME: Error");
+    return;
+  }
+  const value = currentUnit === Units.MPH ? ms * MPS_TO_MPH : ms * MPS_TO_KPH;
 
   const clamped = Math.min(Math.max(value, 0), 999);
   const rounded = Math.round(clamped);
@@ -87,9 +89,6 @@ function handleError(err) {
       setStatus(`Error: ${err.message}`);
   }
 }
-
-// Initialize display to 0 until we get a valid speed
-renderSpeed(0);
 
 // Request high-accuracy GPS and frequent updates
 const watchOptions = {
