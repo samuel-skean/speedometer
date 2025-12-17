@@ -1,8 +1,14 @@
 Icon placeholders for the Speedometer PWA
 
-Files required:
-- icon-192.png (192x192, PNG)
-- icon-512.png (512x512, PNG)
+Source SVGs:
+- icons/icon-light.svg (for light color scheme)
+- icons/icon-dark.svg (for dark color scheme; white strokes for dark backgrounds)
+
+Files required (generated):
+- icons/generated/dark/icon-192.png (192x192, PNG)
+- icons/generated/dark/icon-512.png (512x512, PNG)
+- icons/generated/light/icon-192.png (192x192, PNG)
+- icons/generated/light/icon-512.png (512x512, PNG)
 
 Guidelines:
 - Use a square canvas with transparent background.
@@ -25,5 +31,5 @@ Testing:
 - After placing icons, open the app and check browser install prompt (Add to Home Screen).
 - Verify how the icon looks on Android and iOS (iOS uses the apple-touch-icon and may apply its own mask/rounding).
 - Ensure manifest paths are correct:
-  - icons/icon-192.png
-  - icons/icon-512.png
+  - icons/generated/dark/icon-192.png
+  - icons/generated/dark/icon-512.png

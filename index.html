@@ -8,12 +8,12 @@
 
         <!-- PWA manifest -->
         <link rel="manifest" href="manifest.webmanifest" />
-        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+        <link rel="icon" href="/icons/generated/light/icon-32.png" sizes="32x32" type="image/png" />
 
         <!-- iOS PWA support -->
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+        <link rel="apple-touch-icon" href="icons/generated/dark/icon-192.png" />
 
         <style>
             :root {
@@ -109,6 +109,7 @@
         <!-- App logic -->
         <script type="module" src="/src/pwa-detection.ts"></script>
 
+        <script type="module" src="/src/theme-favicon.ts"></script>
         <script type="module" src="/src/app.ts"></script>
         <!-- Register service worker -->
         <script>

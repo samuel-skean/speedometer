@@ -8,7 +8,7 @@
  *   (or) node -r ts-node/register scripts/render-icons.ts
  *
  * Optional args:
- *   --src=<path-to-svg>   Defaults to ../icons/icon.svg
+ *   --src=<path-to-svg>   Defaults to ../icons/icon-light.svg
  *   --out=<icons-dir>     Defaults to ../icons
  *   --sizes=192,512       Comma-separated list of sizes (px), defaults to 192,512
  */
@@ -32,7 +32,7 @@ function parseArgs(): CliOptions {
     default: {
       src: path.resolve(
         path.dirname(fileURLToPath(import.meta.url)),
-        "../icons/icon.svg",
+        "../icons/icon-light.svg",
       ),
       out: path.resolve(
         path.dirname(fileURLToPath(import.meta.url)),
