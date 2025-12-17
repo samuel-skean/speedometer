@@ -1,0 +1,1595 @@
+## User (checkpoint)
+
+Fix all the biome/typescript errors.
+
+**Tool Call: Check project diagnostics**
+Status: Completed
+
+/Users/samuel-skean/Coding/speedometer/src/service-worker.ts: 5 error(s), 0 warning(s)
+/Users/samuel-skean/Coding/speedometer/vite.config.ts: 1 error(s), 0 warning(s)
+/Users/samuel-skean/Coding/speedometer/src/pwa-detection.ts: 1 error(s), 0 warning(s)
+/Users/samuel-skean/Coding/speedometer/src/pwa-detection.ts: 0 error(s), 1 warning(s)
+
+
+**Tool Call: Read file `src/service-worker.ts`**
+Status: Completed
+
+```/Users/samuel-skean/Coding/speedometer/src/service-worker.ts
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.20";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS: string[] = [
+  "/",
+  "/index.html",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event: ExtendableEvent) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: Read file `vite.config.ts`**
+Status: Completed
+
+```/Users/samuel-skean/Coding/speedometer/vite.config.ts
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+
+/**
+ * Minimal Vite config to enable HTTPS using mkcert-generated certs.
+ *
+ * Expected cert files (created by `mkcert` and your existing npm scripts):
+ * - certs/localhost+2.pem
+ * - certs/localhost+2-key.pem
+ *
+ * If the cert files are missing, Vite will fall back to HTTP and log a warning.
+ */
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+
+function resolveCert(file: string) {
+  const p = path.resolve(rootDir, "certs", file);
+  return fs.existsSync(p) ? p : null;
+}
+
+const certFile = resolveCert("localhost+2.pem");
+const keyFile = resolveCert("localhost+2-key.pem");
+
+const httpsConfig =
+  certFile && keyFile
+    ? {
+        cert: fs.readFileSync(certFile),
+        key: fs.readFileSync(keyFile),
+      }
+    : false;
+
+// Helpful log to indicate protocol choice
+if (httpsConfig === false) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[vite] HTTPS disabled: mkcert files not found at certs/localhost+2.pem and certs/localhost+2-key.pem.\n" +
+      "Run `npm run certs:install` then `npm run certs:generate` to create local dev certificates.",
+  );
+} else {
+  // eslint-disable-next-line no-console
+  console.log("[vite] HTTPS enabled with mkcert-generated certificates.");
+}
+
+export default defineConfig({
+  plugins: [
+    {
+      name: "request-logger",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          console.log(`[vite] ${req.method} ${req.url}`);
+          next();
+        });
+      },
+    },
+  ],
+  server: {
+    https: httpsConfig,
+    port: 5173,
+    open: false,
+  },
+});
+
+```
+
+
+**Tool Call: Read file `src/pwa-detection.ts`**
+Status: Completed
+
+```/Users/samuel-skean/Coding/speedometer/src/pwa-detection.ts
+/**
+ * pwa-detection.js
+ *
+ * Detects when the app is running as an installed PWA and toggles a "pwa-installed"
+ * class on <body>. Applies the class as early as possible to avoid
+ * layout flicker and keeps it in sync across lifecycle events.
+ *
+ * This script does not use an IIFE; it exposes a global `PWADetection` object
+ * and initializes immediately.
+ * Human edit: Lol at the above paragraph. But I'm done fighting it, it seems to work.
+ */
+
+((global: Window & typeof globalThis) => {
+  const supportsMatchMedia =
+    typeof window !== "undefined" && typeof window.matchMedia === "function";
+
+  const PWADetection: {
+    isPwaInstalled(): boolean;
+    applyPwaClass(): void;
+    setupDisplayModeListener(): void;
+    init(): void;
+  } = {
+    /**
+     * Returns true if the app is running as an installed PWA.
+     *
+     * Checks:
+     * - CSS display-mode: standalone/minimal-ui/fullscreen (Chromium-based, some others)
+     * - iOS Safari: navigator.standalone
+     * - iOS heuristic: near-equal innerHeight and outerHeight suggesting no browser chrome
+     */
+    isPwaInstalled() {
+      // Standard display-mode checks
+      const standalone =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: standalone)").matches;
+      const minimalUi =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: minimal-ui)").matches;
+      const fullscreen =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: fullscreen)").matches;
+
+      // iOS-specific checks
+      const ua =
+        (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      const isiOS = /iPhone|iPad|iPod/i.test(ua);
+      const hasStandaloneFlag =
+        typeof navigator !== "undefined" && "standalone" in navigator;
+      const iOSStandalone = hasStandaloneFlag && navigator.standalone === true;
+
+      // Heuristic for iOS fullscreen (no browser chrome)
+      const viewportNoChrome =
+        typeof window !== "undefined" &&
+        isiOS &&
+        typeof window.innerHeight === "number" &&
+        typeof window.outerHeight === "number" &&
+        Math.abs(window.outerHeight - window.innerHeight) <= 2;
+
+      return !!(
+        standalone ||
+        minimalUi ||
+        fullscreen ||
+        iOSStandalone ||
+        viewportNoChrome
+      );
+    },
+
+    /**
+     * Adds or removes the "pwa-installed" class on <body> based on detection.
+     */
+    applyPwaClass() {
+      const body = document.body;
+      if (!body) return;
+
+      if (PWADetection.isPwaInstalled()) {
+        body.classList.add("pwa-installed");
+      } else {
+        body.classList.remove("pwa-installed");
+      }
+    },
+
+    /**
+     * Listen for display-mode changes (supported on some browsers) and re-apply the class.
+     */
+    setupDisplayModeListener() {
+      if (!supportsMatchMedia) return;
+      const mq = window.matchMedia("(display-mode: standalone)");
+
+      // Modern API
+      if (mq && typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", PWADetection.applyPwaClass);
+      }
+      // Legacy API
+      else if (mq && typeof mq.addListener === "function") {
+        mq.addListener(PWADetection.applyPwaClass);
+      }
+    },
+
+    /**
+     * Initialize detection: apply the class immediately and set up listeners.
+     * Called right away and again on DOMContentLoaded to minimize layout flicker.
+     */
+    init() {
+      // Apply ASAP if DOM is available to minimize flicker
+      if (document.body) {
+        PWADetection.applyPwaClass();
+      }
+
+      const run = () => {
+        PWADetection.applyPwaClass();
+        PWADetection.setupDisplayModeListener();
+
+        // Keep in sync across visibility and navigation lifecycle
+        document.addEventListener(
+          "visibilitychange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("pageshow", PWADetection.applyPwaClass);
+        window.addEventListener(
+          "orientationchange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("resize", PWADetection.applyPwaClass);
+      };
+
+      if (
+        document.readyState === "interactive" ||
+        document.readyState === "complete"
+      ) {
+        run();
+      } else {
+        document.addEventListener("DOMContentLoaded", run, { once: true });
+      }
+    },
+  };
+
+  // Export and initialize immediately
+  (global as any).PWADetection = PWADetection;
+  PWADetection.init();
+})(window);
+
+```
+
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/src/service-worker.ts`**
+Status: Completed
+
+error at line 93: Cannot find name 'ExtendableEvent'.
+error at line 115: Property 'skipWaiting' does not exist on type 'Window & typeof globalThis'.
+error at line 123: Cannot find name 'ExtendableEvent'.
+error at line 135: Property 'clients' does not exist on type 'Window & typeof globalThis'.
+error at line 144: Cannot find name 'FetchEvent'. Did you mean 'TouchEvent'?
+
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/vite.config.ts`**
+Status: Completed
+
+error at line 59: No overload matches this call.
+  The last overload gave the following error.
+    Type 'false | { cert: NonSharedBuffer; key: NonSharedBuffer; }' is not assignable to type 'ServerOptions<typeof IncomingMessage, typeof ServerResponse> | undefined'.
+      Type 'false' has no properties in common with type 'ServerOptions<typeof IncomingMessage, typeof ServerResponse>'.
+
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/src/pwa-detection.ts`**
+Status: Completed
+
+error at line 49: Property 'standalone' does not exist on type 'Navigator'.
+warning at line 138: Unexpected any. Specify a different type.
+
+
+**Tool Call: src/service-worker.ts**
+Status: Completed
+
+Diff: src/service-worker.ts
+```
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.20";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS: string[] = [
+  "/",
+  "/index.html",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event: ExtendableEvent) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: src/service-worker.ts**
+Status: Completed
+
+Diff: src/service-worker.ts
+```
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.20";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS: string[] = [
+  "/",
+  "/index.html",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event: ExtendableEvent) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: vite.config.ts**
+Status: Completed
+
+Diff: vite.config.ts
+```
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+
+/**
+ * Minimal Vite config to enable HTTPS using mkcert-generated certs.
+ *
+ * Expected cert files (created by `mkcert` and your existing npm scripts):
+ * - certs/localhost+2.pem
+ * - certs/localhost+2-key.pem
+ *
+ * If the cert files are missing, Vite will fall back to HTTP and log a warning.
+ */
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+
+function resolveCert(file: string) {
+  const p = path.resolve(rootDir, "certs", file);
+  return fs.existsSync(p) ? p : null;
+}
+
+const certFile = resolveCert("localhost+2.pem");
+const keyFile = resolveCert("localhost+2-key.pem");
+
+const httpsConfig =
+  certFile && keyFile
+    ? {
+        cert: fs.readFileSync(certFile),
+        key: fs.readFileSync(keyFile),
+      }
+    : undefined;
+
+// Helpful log to indicate protocol choice
+if (!httpsConfig) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[vite] HTTPS disabled: mkcert files not found at certs/localhost+2.pem and certs/localhost+2-key.pem.\n" +
+      "Run `npm run certs:install` then `npm run certs:generate` to create local dev certificates.",
+  );
+} else {
+  // eslint-disable-next-line no-console
+  console.log("[vite] HTTPS enabled with mkcert-generated certificates.");
+}
+
+export default defineConfig({
+  plugins: [
+    {
+      name: "request-logger",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          console.log(`[vite] ${req.method} ${req.url}`);
+          next();
+        });
+      },
+    },
+  ],
+  server: {
+    https: httpsConfig,
+    port: 5173,
+    open: false,
+  },
+});
+
+```
+
+
+**Tool Call: src/pwa-detection.ts**
+Status: Completed
+
+Diff: src/pwa-detection.ts
+```
+/**
+ * pwa-detection.js
+ *
+ * Detects when the app is running as an installed PWA and toggles a "pwa-installed"
+ * class on <body>. Applies the class as early as possible to avoid
+ * layout flicker and keeps it in sync across lifecycle events.
+ *
+ * This script does not use an IIFE; it exposes a global `PWADetection` object
+ * and initializes immediately.
+ * Human edit: Lol at the above paragraph. But I'm done fighting it, it seems to work.
+ */
+
+((global: Window & typeof globalThis) => {
+  const supportsMatchMedia =
+    typeof window !== "undefined" && typeof window.matchMedia === "function";
+
+  const PWADetection: {
+    isPwaInstalled(): boolean;
+    applyPwaClass(): void;
+    setupDisplayModeListener(): void;
+    init(): void;
+  } = {
+    /**
+     * Returns true if the app is running as an installed PWA.
+     *
+     * Checks:
+     * - CSS display-mode: standalone/minimal-ui/fullscreen (Chromium-based, some others)
+     * - iOS Safari: navigator.standalone
+     * - iOS heuristic: near-equal innerHeight and outerHeight suggesting no browser chrome
+     */
+    isPwaInstalled() {
+      // Standard display-mode checks
+      const standalone =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: standalone)").matches;
+      const minimalUi =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: minimal-ui)").matches;
+      const fullscreen =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: fullscreen)").matches;
+
+      // iOS-specific checks
+      const ua =
+        (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      const isiOS = /iPhone|iPad|iPod/i.test(ua);
+      const hasStandaloneFlag =
+        typeof navigator !== "undefined" && "standalone" in navigator;
+      const iOSStandalone =
+        hasStandaloneFlag &&
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+      // Heuristic for iOS fullscreen (no browser chrome)
+      const viewportNoChrome =
+        typeof window !== "undefined" &&
+        isiOS &&
+        typeof window.innerHeight === "number" &&
+        typeof window.outerHeight === "number" &&
+        Math.abs(window.outerHeight - window.innerHeight) <= 2;
+
+      return !!(
+        standalone ||
+        minimalUi ||
+        fullscreen ||
+        iOSStandalone ||
+        viewportNoChrome
+      );
+    },
+
+    /**
+     * Adds or removes the "pwa-installed" class on <body> based on detection.
+     */
+    applyPwaClass() {
+      const body = document.body;
+      if (!body) return;
+
+      if (PWADetection.isPwaInstalled()) {
+        body.classList.add("pwa-installed");
+      } else {
+        body.classList.remove("pwa-installed");
+      }
+    },
+
+    /**
+     * Listen for display-mode changes (supported on some browsers) and re-apply the class.
+     */
+    setupDisplayModeListener() {
+      if (!supportsMatchMedia) return;
+      const mq = window.matchMedia("(display-mode: standalone)");
+
+      // Modern API
+      if (mq && typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", PWADetection.applyPwaClass);
+      }
+      // Legacy API
+      else if (mq && typeof mq.addListener === "function") {
+        mq.addListener(PWADetection.applyPwaClass);
+      }
+    },
+
+    /**
+     * Initialize detection: apply the class immediately and set up listeners.
+     * Called right away and again on DOMContentLoaded to minimize layout flicker.
+     */
+    init() {
+      // Apply ASAP if DOM is available to minimize flicker
+      if (document.body) {
+        PWADetection.applyPwaClass();
+      }
+
+      const run = () => {
+        PWADetection.applyPwaClass();
+        PWADetection.setupDisplayModeListener();
+
+        // Keep in sync across visibility and navigation lifecycle
+        document.addEventListener(
+          "visibilitychange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("pageshow", PWADetection.applyPwaClass);
+        window.addEventListener(
+          "orientationchange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("resize", PWADetection.applyPwaClass);
+      };
+
+      if (
+        document.readyState === "interactive" ||
+        document.readyState === "complete"
+      ) {
+        run();
+      } else {
+        document.addEventListener("DOMContentLoaded", run, { once: true });
+      }
+    },
+  };
+
+  // Export and initialize immediately
+  (global as unknown as { PWADetection: typeof PWADetection }).PWADetection =
+    PWADetection;
+  PWADetection.init();
+})(window);
+
+```
+
+
+**Tool Call: Check project diagnostics**
+Status: Completed
+
+/Users/samuel-skean/Coding/speedometer/src/service-worker.ts: 2 error(s), 0 warning(s)
+/Users/samuel-skean/Coding/speedometer/src/service-worker.ts: 1 error(s), 0 warning(s)
+
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/src/service-worker.ts`**
+Status: Completed
+
+error at line 3: Cannot redeclare block-scoped variable 'self'.
+error at line 7: Shouldn't redeclare 'self'. Consider to delete it or rename it.
+error at line 7: Cannot redeclare block-scoped variable 'self'.
+
+
+**Tool Call: Read file `src/service-worker.ts`**
+Status: Completed
+
+```/Users/samuel-skean/Coding/speedometer/src/service-worker.ts
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.20";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS: string[] = [
+  "/",
+  "/index.html",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event: ExtendableEvent) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: src/service-worker.ts**
+Status: Completed
+
+Diff: src/service-worker.ts
+```
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.20";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS: string[] = [
+  "/",
+  "/index.html",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event: ExtendableEvent) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/src/service-worker.ts`**
+Status: Completed
+
+File doesn't have errors or warnings!
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/vite.config.ts`**
+Status: Completed
+
+File doesn't have errors or warnings!
+
+**Tool Call: Check diagnostics for `/Users/samuel-skean/Coding/speedometer/src/pwa-detection.ts`**
+Status: Completed
+
+File doesn't have errors or warnings!
+
+## Assistant
+
+I fixed the Biome/TypeScript errors across the project. Here’s what changed and why:
+
+- `src/service-worker.ts`
+  - Added webworker typings and correct global scope so TS understands service worker APIs:
+    - `/// <reference lib="webworker" />`
+    - `export {};`
+    - `declare const self: ServiceWorkerGlobalScope;`
+  - This resolves missing types for `ExtendableEvent`, `FetchEvent`, `self.skipWaiting()`, and `self.clients.claim()`.
+  - Removed a duplicate declaration that was causing “Cannot redeclare block-scoped variable 'self'”.
+
+- `vite.config.ts`
+  - Fixed the type for `server.https` so it matches Vite’s expected config:
+    - When certs are present, provide `{ cert: Buffer, key: Buffer }`.
+    - When not present, set `https` to `undefined` instead of `false`.
+  - Logging now branches on `!httpsConfig` to indicate HTTPS disabled.
+
+- `src/pwa-detection.ts`
+  - Accessed `navigator.standalone` safely with a narrowed type:
+    - `(navigator as Navigator & { standalone?: boolean }).standalone === true`
+  - Replaced `(global as any)` with a narrower cast to eliminate the Biome “Unexpected any” warning:
+    - `(global as unknown as { PWADetection: typeof PWADetection }).PWADetection = PWADetection;`
+
+Diagnostics summary after changes:
+- `src/service-worker.ts`: no errors or warnings.
+- `vite.config.ts`: no errors or warnings.
+- `src/pwa-detection.ts`: no errors or warnings.
+
+If you want, I can run your build or test commands next to ensure everything compiles and runs cleanly.
+
