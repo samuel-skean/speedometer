@@ -1,15 +1,17 @@
 {
   "name": "speedometer",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "Minimal PWA speedometer that displays GPS speed. Includes TypeScript script to render PNG icons from SVG using sharp.",
   "license": "MIT",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start:http": "serve -l 8080",
-    "start:https": "serve --ssl-cert certs/localhost+2.pem --ssl-key certs/localhost+2-key.pem -l 8443",
-    "start:https:auto": "ts-node scripts/start-https.ts",
-    "render:icons": "ts-node scripts/render-icons.ts --out=icons/generated --sizes=192,512",
-    "render:icons:custom": "ts-node scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start:https:auto": "ts-node --esm scripts/start-https.ts",
+    "render:icons": "ts-node --esm scripts/render-icons.ts --out=icons/generated --sizes=192,512",
+    "render:icons:custom": "ts-node --esm scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated",
     "certs:install": "mkcert -install",
     "certs:generate": "cd certs && mkcert localhost 127.0.0.1 ::1",
     "postinstall": "npm run render:icons && ( command -v mkcert >/dev/null 2>&1 && npm run certs:install && npm run certs:generate || echo \"Skipping mkcert (mkcert not found)\" )"
@@ -24,6 +26,7 @@
     "serve": "^14.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.6.3",
+    "vite": "^5.4.8",
     "wrangler": "^4.54.0"
   },
   "engines": {

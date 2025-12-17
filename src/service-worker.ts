@@ -6,13 +6,13 @@
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.18";
+const CACHE_VERSION = "0.0.19";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
-const ASSETS = [
+const ASSETS: string[] = [
   "/",
   "/index.html",
-  "/app.js",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
   "/manifest.webmanifest",
   "/icons/generated/icon-192.png",
   "/icons/generated/icon-512.png",
@@ -21,7 +21,7 @@ const ASSETS = [
 /**
  * Helpers
  */
-const isSameOrigin = (url) => {
+const isSameOrigin = (url: string): boolean => {
   try {
     return new URL(url, self.location.href).origin === self.location.origin;
   } catch {
@@ -29,7 +29,12 @@ const isSameOrigin = (url) => {
   }
 };
 
-async function putUnderBothUrls(cache, originalRequest, finalUrl, response) {
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
   // Cache under the original request key
   await cache.put(originalRequest, response.clone());
 
@@ -46,7 +51,7 @@ async function putUnderBothUrls(cache, originalRequest, finalUrl, response) {
  * - Otherwise, cache the network response normally.
  * Returns the response to serve.
  */
-async function fetchFollowAndCacheGET(request) {
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
   const cache = await caches.open(CACHE_NAME);
 
   // Initial network fetch (default behavior follows redirects)
@@ -85,7 +90,7 @@ async function fetchFollowAndCacheGET(request) {
 /**
  * Precache assets, following redirects and caching only final responses.
  */
-self.addEventListener("install", (event) => {
+self.addEventListener("install", (event: ExtendableEvent) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
@@ -115,7 +120,7 @@ self.addEventListener("install", (event) => {
 /**
  * On activate, purge old caches.
  */
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", (event: ExtendableEvent) => {
   event.waitUntil(
     caches
       .keys()
@@ -136,8 +141,8 @@ self.addEventListener("activate", (event) => {
  * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
  * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
  */
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
   const url = new URL(request.url);
 
   // Only handle same-origin requests

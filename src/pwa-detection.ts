@@ -10,11 +10,16 @@
  * Human edit: Lol at the above paragraph. But I'm done fighting it, it seems to work.
  */
 
-((global) => {
+((global: Window & typeof globalThis) => {
   const supportsMatchMedia =
     typeof window !== "undefined" && typeof window.matchMedia === "function";
 
-  const PWADetection = {
+  const PWADetection: {
+    isPwaInstalled(): boolean;
+    applyPwaClass(): void;
+    setupDisplayModeListener(): void;
+    init(): void;
+  } = {
     /**
      * Returns true if the app is running as an installed PWA.
      *
@@ -130,6 +135,6 @@
   };
 
   // Export and initialize immediately
-  global.PWADetection = PWADetection;
+  (global as any).PWADetection = PWADetection;
   PWADetection.init();
 })(window);

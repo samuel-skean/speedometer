@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2020", "DOM"],
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "strict": true,
@@ -10,5 +11,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "scripts/**/*.d.ts"]
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "scripts/**/*.d.ts"]
 }

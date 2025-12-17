@@ -7,13 +7,13 @@
         <meta name="theme-color" content="#111111" />
 
         <!-- PWA manifest -->
-        <link rel="manifest" href="manifest.webmanifest" />
-        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+        <link rel="manifest" href="/assets/manifest-Ce7PV5gg.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="/assets/icon-DXc-qQKZ.svg" />
 
         <!-- iOS PWA support -->
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+        <link rel="apple-touch-icon" href="/assets/icon-192-PVSUhMCD.png" />
 
         <style>
             :root {
@@ -100,6 +100,7 @@
                 transform: translateY(1px);
             }
         </style>
+      <script type="module" crossorigin src="/assets/index-FEBiMhC1.js"></script>
     </head>
     <body>
         <button id="unitToggle" aria-label="Toggle speed units">mph</button>
@@ -110,9 +111,7 @@
         <div id="status" class="status">Waiting for GPS...</div>
 
         <!-- App logic -->
-        <script type="module" src="/src/pwa-detection.ts"></script>
 
-        <script type="module" src="/src/app.ts"></script>
         <!-- Register service worker -->
         <script>
             if ("serviceWorker" in navigator) {

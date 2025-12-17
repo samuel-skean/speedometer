@@ -14,6 +14,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import minimist from "minimist";
 import sharp from "sharp";
 
@@ -27,8 +28,14 @@ function parseArgs(): CliOptions {
   const argv = minimist(process.argv.slice(2), {
     string: ["src", "out", "sizes"],
     default: {
-      src: path.resolve(__dirname, "../icons/icon.svg"),
-      out: path.resolve(__dirname, "../icons"),
+      src: path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "../icons/icon.svg",
+      ),
+      out: path.resolve(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "../icons",
+      ),
       sizes: "192,512",
     },
   });

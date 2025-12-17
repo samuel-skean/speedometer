@@ -1,9 +1,8 @@
-#!/usr/bin/env ts-node
-
 import { spawn } from "node:child_process";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 async function pickCertPair(dir: string) {
   const entries = await readdir(dir);
@@ -31,7 +30,8 @@ async function pickCertPair(dir: string) {
 }
 
 async function main() {
-  const root = process.cwd();
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const root = path.resolve(scriptDir, "..");
   const certsDir = path.resolve(root, "certs");
   const port = String(process.env.PORT || 8443);
 
