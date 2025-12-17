@@ -46,7 +46,9 @@
       const isiOS = /iPhone|iPad|iPod/i.test(ua);
       const hasStandaloneFlag =
         typeof navigator !== "undefined" && "standalone" in navigator;
-      const iOSStandalone = hasStandaloneFlag && navigator.standalone === true;
+      const iOSStandalone =
+        hasStandaloneFlag &&
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
       // Heuristic for iOS fullscreen (no browser chrome)
       const viewportNoChrome =
@@ -135,6 +137,7 @@
   };
 
   // Export and initialize immediately
-  (global as any).PWADetection = PWADetection;
+  (global as unknown as { PWADetection: typeof PWADetection }).PWADetection =
+    PWADetection;
   PWADetection.init();
 })(window);

@@ -29,10 +29,10 @@ const httpsConfig =
         cert: fs.readFileSync(certFile),
         key: fs.readFileSync(keyFile),
       }
-    : false;
+    : undefined;
 
 // Helpful log to indicate protocol choice
-if (httpsConfig === false) {
+if (!httpsConfig) {
   // eslint-disable-next-line no-console
   console.warn(
     "[vite] HTTPS disabled: mkcert files not found at certs/localhost+2.pem and certs/localhost+2-key.pem.\n" +

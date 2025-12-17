@@ -1,3 +1,7 @@
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
 /**
  * Offline-first service worker for Speedometer PWA.
  * Follows redirects and caches the final target, never a redirected response.
@@ -6,7 +10,7 @@
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.20";
+const CACHE_VERSION = "0.0.21";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS: string[] = [
