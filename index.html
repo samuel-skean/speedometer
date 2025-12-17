@@ -43,7 +43,7 @@
                 touch-action: none;
             }
             .container {
-                text-align: center;
+                text-align: right;
             }
             .speed {
                 font-size: clamp(64px, 24vw, 250px);
@@ -53,6 +53,9 @@
                 font-feature-settings:
                     "tnum" 1,
                     "lnum" 1;
+                display: inline-block;
+                text-align: right;
+                min-width: 3.25ch;
             }
             .speed::before {
                 content: "";
