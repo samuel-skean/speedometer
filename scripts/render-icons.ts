@@ -1,6 +1,8 @@
 /**
  * Render PNG icons from an SVG source using sharp.
  *
+ * samuel-skean: I believe the below usage instructions are out of date. Use `tsx scripts/render-icons.ts` instead.
+ *
  * Usage:
  *   ts-node scripts/render-icons.ts
  *   (or) node -r ts-node/register scripts/render-icons.ts
