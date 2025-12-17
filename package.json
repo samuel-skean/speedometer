@@ -9,7 +9,6 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start:https:auto": "tsx scripts/start-https.ts",
     "render:icons": "tsx scripts/render-icons.ts --out=icons/generated --sizes=192,512",
     "render:icons:custom": "tsx scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated",
     "certs:install": "mkcert -install",
