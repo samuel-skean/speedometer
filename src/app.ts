@@ -118,3 +118,12 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
+// Register service worker from the app bundle so it’s included in production builds
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .catch((e) => console.error("SW registration failed:", e));
+  });
+}

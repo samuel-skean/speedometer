@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
+import { build as esbuild } from "esbuild";
 
 /**
  * Minimal Vite config to enable HTTPS using mkcert-generated certs.
@@ -14,6 +15,7 @@ import { defineConfig } from "vite";
  */
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
+let resolvedConfig: import("vite").ResolvedConfig;
 
 function resolveCert(file: string) {
   const p = path.resolve(rootDir, "certs", file);
@@ -52,6 +54,41 @@ export default defineConfig({
           console.log(`[vite] ${req.method} ${req.url}`);
           next();
         });
+      },
+    },
+    {
+      name: "service-worker-builder",
+      apply: "build",
+      configResolved(config) {
+        resolvedConfig = config;
+      },
+      async closeBundle() {
+        const root = resolvedConfig?.root ?? process.cwd();
+        const outDir = path.resolve(
+          root,
+          resolvedConfig?.build?.outDir ?? "dist",
+        );
+        const swSrc = path.resolve(root, "src", "service-worker.ts");
+        const swOut = path.join(outDir, "service-worker.js");
+
+        if (!fs.existsSync(swSrc)) {
+          console.warn(
+            "[sw-builder] src/service-worker.ts not found; skipping",
+          );
+          return;
+        }
+
+        await esbuild({
+          entryPoints: [swSrc],
+          outfile: swOut,
+          bundle: true,
+          format: "iife",
+          platform: "browser",
+          target: "es2020",
+          sourcemap: false,
+        });
+
+        console.log(`[sw-builder] emitted ${path.relative(root, swOut)}`);
       },
     },
   ],

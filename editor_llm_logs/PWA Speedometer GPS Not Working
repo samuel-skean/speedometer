@@ -1,0 +1,2080 @@
+## User (checkpoint)
+
+Okay, so... it seems to just do nothing on my phone when installed as a PWA. Like, this is what I see: [@Screenshot 2025-12-16 at 19.36.53.png](file:///Users/samuel-skean/Downloads/Screenshot%202025-12-16%20at%2019.36.53.png) This happens when browsing on my desktop and normally on my phone too. I have cleared the cache and completely uninstalled the app before observing this behavior.
+
+**Tool Call: List the `Users/samuel-skean/Coding/speedometer` directory's contents**
+Status: Failed
+
+Path Users/samuel-skean/Coding/speedometer not found in project
+
+**Tool Call: List the `/Users/samuel-skean/Coding/speedometer` directory's contents**
+Status: Completed
+
+# Folders:
+speedometer/.git
+speedometer/.github
+speedometer/.zed
+speedometer/certs
+speedometer/dist
+speedometer/editor_llm_logs
+speedometer/icons
+speedometer/node_modules
+speedometer/scripts
+speedometer/src
+
+# Files:
+speedometer/.DS_Store
+speedometer/.gitignore
+speedometer/LICENSE
+speedometer/biome.json
+speedometer/index.html
+speedometer/manifest.webmanifest
+speedometer/package-lock.json
+speedometer/package.json
+speedometer/tsconfig.json
+speedometer/vite.config.ts
+speedometer/wrangler.toml
+
+
+**Tool Call: Read file `index.html`**
+Status: Completed
+
+```speedometer/index.html
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script type="module" src="/src/pwa-detection.ts"></script>
+
+        <script type="module" src="/src/app.ts"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("/service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+```
+
+
+**Tool Call: Read file `manifest.webmanifest`**
+Status: Completed
+
+```speedometer/manifest.webmanifest
+{
+  "name": "Speedometer",
+  "short_name": "Speedo",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "orientation": "portrait",
+  "description": "A simple PWA that shows your current speed from GPS.",
+  "icons": [
+    {
+      "src": "icons/generated/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/generated/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
+```
+
+
+**Tool Call: List the `speedometer/src` directory's contents**
+Status: Completed
+
+
+# Files:
+speedometer/src/app.ts
+speedometer/src/pwa-detection.ts
+speedometer/src/service-worker.ts
+
+
+**Tool Call: Read file `src/app.ts`**
+Status: Completed
+
+```speedometer/src/app.ts
+/**
+ * Basic speedometer using the Geolocation API, simplified.
+ * - Uses ONLY native position.coords.speed (m/s).
+ * - No distance/time fallback when speed is unavailable.
+ * - Displays speed centered on screen; unit toggle between mph and km/h.
+ */
+
+const speedEl = document.getElementById("speed") as HTMLDivElement | null;
+const unitEl = document.getElementById("unit") as HTMLDivElement | null;
+const statusEl = document.getElementById("status") as HTMLDivElement | null;
+const unitToggleBtn = document.getElementById(
+  "unitToggle",
+) as HTMLButtonElement | null;
+
+const Units = {
+  MPH: "mph",
+  KPH: "km/h",
+} as const;
+type Unit = (typeof Units)[keyof typeof Units];
+
+const MPS_TO_MPH = 2.2369362920544;
+const MPS_TO_KPH = 3.6;
+
+let currentUnit: Unit =
+  (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
+let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
+
+function updateUnitUI(): void {
+  if (unitEl) unitEl.textContent = currentUnit;
+  if (unitToggleBtn) unitToggleBtn.textContent = currentUnit;
+}
+
+// Render the speed (expects m/s)
+function renderSpeed(ms: number): void {
+  if (!Number.isFinite(ms) || ms < 0) {
+    setStatus("FIXME: Error");
+    return;
+  }
+  const value = currentUnit === Units.MPH ? ms * MPS_TO_MPH : ms * MPS_TO_KPH;
+  const clamped = Math.min(Math.max(value, 0), 999);
+  const rounded = Math.round(clamped);
+  if (speedEl) speedEl.textContent = String(rounded);
+}
+
+function setStatus(text: string): void {
+  if (statusEl) statusEl.textContent = text;
+}
+
+function handlePosition(pos: GeolocationPosition): void {
+  const { speed, accuracy } = pos.coords;
+
+  // Update speed only when native speed is provided and valid
+  if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
+    lastSpeedMs = speed;
+    renderSpeed(speed);
+  }
+
+  // Status/accuracy
+  if (typeof accuracy === "number" && Number.isFinite(accuracy)) {
+    setStatus(`Accuracy: ±${Math.round(accuracy)}m`);
+  } else {
+    setStatus("GPS fix acquired");
+  }
+}
+
+function handleError(err: GeolocationPositionError): void {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      setStatus("Location permission denied. Enable it to see speed.");
+      break;
+    case err.POSITION_UNAVAILABLE:
+      setStatus("Location unavailable. Move to open sky for GPS.");
+      break;
+    case err.TIMEOUT:
+      setStatus("Location timeout. Trying again...");
+      break;
+    default:
+      setStatus(`Error: ${err.message}`);
+  }
+}
+
+function init(): void {
+  updateUnitUI();
+
+  // Unit toggle
+  unitToggleBtn?.addEventListener("click", () => {
+    currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
+    localStorage.setItem("speed-unit", currentUnit);
+    updateUnitUI();
+    // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
+    if (lastSpeedMs !== null) {
+      renderSpeed(lastSpeedMs);
+    }
+  });
+
+  // Request high-accuracy GPS and frequent updates
+  const watchOptions: PositionOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 1000, // accept 1s old cached positions
+    timeout: 10000, // 10s per fix
+  };
+
+  if ("geolocation" in navigator) {
+    setStatus("Requesting GPS...");
+    navigator.geolocation.watchPosition(
+      handlePosition,
+      handleError,
+      watchOptions,
+    );
+  } else {
+    setStatus("Geolocation not supported on this device.");
+  }
+}
+
+// Run immediately in module scope once DOM is ready enough for our elements
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init, { once: true });
+} else {
+  init();
+}
+
+```
+
+
+**Tool Call: Read file `src/pwa-detection.ts`**
+Status: Completed
+
+```speedometer/src/pwa-detection.ts
+/**
+ * pwa-detection.js
+ *
+ * Detects when the app is running as an installed PWA and toggles a "pwa-installed"
+ * class on <body>. Applies the class as early as possible to avoid
+ * layout flicker and keeps it in sync across lifecycle events.
+ *
+ * This script does not use an IIFE; it exposes a global `PWADetection` object
+ * and initializes immediately.
+ * Human edit: Lol at the above paragraph. But I'm done fighting it, it seems to work.
+ */
+
+((global: Window & typeof globalThis) => {
+  const supportsMatchMedia =
+    typeof window !== "undefined" && typeof window.matchMedia === "function";
+
+  const PWADetection: {
+    isPwaInstalled(): boolean;
+    applyPwaClass(): void;
+    setupDisplayModeListener(): void;
+    init(): void;
+  } = {
+    /**
+     * Returns true if the app is running as an installed PWA.
+     *
+     * Checks:
+     * - CSS display-mode: standalone/minimal-ui/fullscreen (Chromium-based, some others)
+     * - iOS Safari: navigator.standalone
+     * - iOS heuristic: near-equal innerHeight and outerHeight suggesting no browser chrome
+     */
+    isPwaInstalled() {
+      // Standard display-mode checks
+      const standalone =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: standalone)").matches;
+      const minimalUi =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: minimal-ui)").matches;
+      const fullscreen =
+        supportsMatchMedia &&
+        window.matchMedia("(display-mode: fullscreen)").matches;
+
+      // iOS-specific checks
+      const ua =
+        (typeof navigator !== "undefined" && navigator.userAgent) || "";
+      const isiOS = /iPhone|iPad|iPod/i.test(ua);
+      const hasStandaloneFlag =
+        typeof navigator !== "undefined" && "standalone" in navigator;
+      const iOSStandalone =
+        hasStandaloneFlag &&
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+      // Heuristic for iOS fullscreen (no browser chrome)
+      const viewportNoChrome =
+        typeof window !== "undefined" &&
+        isiOS &&
+        typeof window.innerHeight === "number" &&
+        typeof window.outerHeight === "number" &&
+        Math.abs(window.outerHeight - window.innerHeight) <= 2;
+
+      return !!(
+        standalone ||
+        minimalUi ||
+        fullscreen ||
+        iOSStandalone ||
+        viewportNoChrome
+      );
+    },
+
+    /**
+     * Adds or removes the "pwa-installed" class on <body> based on detection.
+     */
+    applyPwaClass() {
+      const body = document.body;
+      if (!body) return;
+
+      if (PWADetection.isPwaInstalled()) {
+        body.classList.add("pwa-installed");
+      } else {
+        body.classList.remove("pwa-installed");
+      }
+    },
+
+    /**
+     * Listen for display-mode changes (supported on some browsers) and re-apply the class.
+     */
+    setupDisplayModeListener() {
+      if (!supportsMatchMedia) return;
+      const mq = window.matchMedia("(display-mode: standalone)");
+
+      // Modern API
+      if (mq && typeof mq.addEventListener === "function") {
+        mq.addEventListener("change", PWADetection.applyPwaClass);
+      }
+      // Legacy API
+      else if (mq && typeof mq.addListener === "function") {
+        mq.addListener(PWADetection.applyPwaClass);
+      }
+    },
+
+    /**
+     * Initialize detection: apply the class immediately and set up listeners.
+     * Called right away and again on DOMContentLoaded to minimize layout flicker.
+     */
+    init() {
+      // Apply ASAP if DOM is available to minimize flicker
+      if (document.body) {
+        PWADetection.applyPwaClass();
+      }
+
+      const run = () => {
+        PWADetection.applyPwaClass();
+        PWADetection.setupDisplayModeListener();
+
+        // Keep in sync across visibility and navigation lifecycle
+        document.addEventListener(
+          "visibilitychange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("pageshow", PWADetection.applyPwaClass);
+        window.addEventListener(
+          "orientationchange",
+          PWADetection.applyPwaClass,
+        );
+        window.addEventListener("resize", PWADetection.applyPwaClass);
+      };
+
+      if (
+        document.readyState === "interactive" ||
+        document.readyState === "complete"
+      ) {
+        run();
+      } else {
+        document.addEventListener("DOMContentLoaded", run, { once: true });
+      }
+    },
+  };
+
+  // Export and initialize immediately
+  (global as unknown as { PWADetection: typeof PWADetection }).PWADetection =
+    PWADetection;
+  PWADetection.init();
+})(window);
+
+```
+
+
+**Tool Call: Read file `src/service-worker.ts`**
+Status: Completed
+
+```speedometer/src/service-worker.ts
+/// <reference lib="webworker" />
+export {};
+declare const self: ServiceWorkerGlobalScope;
+
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.21";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+
+const ASSETS: string[] = [
+  "/",
+  "/index.html",
+  // app is bundled by Vite; keep index.html precached, assets are handled at runtime
+  "/manifest.webmanifest",
+  "/icons/generated/icon-192.png",
+  "/icons/generated/icon-512.png",
+];
+
+/**
+ * Helpers
+ */
+const isSameOrigin = (url: string): boolean => {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+async function putUnderBothUrls(
+  cache: Cache,
+  originalRequest: Request,
+  finalUrl: string | null,
+  response: Response,
+): Promise<void> {
+  // Cache under the original request key
+  await cache.put(originalRequest, response.clone());
+
+  // Also cache under the final URL (if same-origin), to avoid re-fetching later by its canonical URL
+  if (finalUrl && isSameOrigin(finalUrl)) {
+    const finalRequest = new Request(finalUrl, { method: "GET" });
+    await cache.put(finalRequest, response.clone());
+  }
+}
+
+/**
+ * Given a GET Request, fetch it from network and:
+ * - If a redirect happened, fetch the final URL and cache THAT response (under both original and final URLs).
+ * - Otherwise, cache the network response normally.
+ * Returns the response to serve.
+ */
+async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
+  const cache = await caches.open(CACHE_NAME);
+
+  // Initial network fetch (default behavior follows redirects)
+  const networkResponse = await fetch(request);
+
+  // For non-GET, opaque, or non-OK responses, just return without caching
+  if (request.method !== "GET") return networkResponse;
+
+  // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
+  if (networkResponse.redirected) {
+    const finalUrl = networkResponse.url;
+    const finalResponse = await fetch(finalUrl, { method: "GET" });
+
+    if (finalResponse.ok && finalResponse.type === "basic") {
+      await putUnderBothUrls(cache, request, finalUrl, finalResponse.clone());
+    }
+    return finalResponse;
+  }
+
+  // Normal successful same-origin responses are type "basic"
+  if (networkResponse.ok && networkResponse.type === "basic") {
+    // Cache under the original request
+    await cache.put(request, networkResponse.clone());
+
+    // If the network URL differs (e.g., normalized path), also store under that URL
+    const networkUrl = networkResponse.url;
+    if (networkUrl && networkUrl !== request.url && isSameOrigin(networkUrl)) {
+      const finalRequest = new Request(networkUrl, { method: "GET" });
+      await cache.put(finalRequest, networkResponse.clone());
+    }
+  }
+
+  return networkResponse;
+}
+
+/**
+ * Precache assets, following redirects and caching only final responses.
+ */
+self.addEventListener("install", (event: ExtendableEvent) => {
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      // Manually fetch and cache assets to ensure we never store redirected responses
+      for (const url of ASSETS) {
+        try {
+          const req = new Request(url, { method: "GET" });
+          const resp = await fetch(req);
+          if (resp.redirected) {
+            const finalResp = await fetch(resp.url, { method: "GET" });
+            if (finalResp.ok && finalResp.type === "basic") {
+              await putUnderBothUrls(cache, req, resp.url, finalResp.clone());
+            }
+          } else if (resp.ok && resp.type === "basic") {
+            await cache.put(req, resp.clone());
+          }
+        } catch {
+          // Ignore individual asset failures during install; runtime fetch handler will recover.
+        }
+      }
+      // Activate worker immediately after successful precache
+      self.skipWaiting();
+    })(),
+  );
+});
+
+/**
+ * On activate, purge old caches.
+ */
+self.addEventListener("activate", (event: ExtendableEvent) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
+      ),
+  );
+  self.clients.claim();
+});
+
+/**
+ * Fetch handler:
+ * - Handle same-origin requests only.
+ * - Navigation: network-first, follow redirects; fallback to cached index.html when offline.
+ * - Other GETs: cache-first; on miss or redirected cache entry, fetch (follow redirects) and cache final response.
+ */
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Use the same logic to ensure we never cache redirected responses
+          const response = await fetchFollowAndCacheGET(request);
+          return response;
+        } catch {
+          const cachedIndex = await caches.match("/index.html");
+          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          return new Response("Offline", { status: 503 });
+        }
+      })(),
+    );
+    return;
+  }
+
+  // For non-GET requests, just pass-through
+  if (request.method !== "GET") {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // Static assets and other GET requests: cache-first, then network (following redirects) and cache the final target
+  event.respondWith(
+    (async () => {
+      const cached = await caches.match(request);
+      // If we previously stored a redirected response by mistake, don't serve it; fetch fresh instead.
+      if (cached && !cached.redirected) {
+        return cached;
+      }
+
+      try {
+        const networkResponse = await fetchFollowAndCacheGET(request);
+        return networkResponse;
+      } catch {
+        // As a last resort for known assets, serve from cache if available
+        if (ASSETS.includes(url.pathname)) {
+          const fallback = await caches.match(request);
+          if (fallback && !fallback.redirected) return fallback;
+        }
+        return new Response("Offline", { status: 503 });
+      }
+    })(),
+  );
+});
+
+```
+
+
+**Tool Call: Read file `vite.config.ts`**
+Status: Completed
+
+```speedometer/vite.config.ts
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+
+/**
+ * Minimal Vite config to enable HTTPS using mkcert-generated certs.
+ *
+ * Expected cert files (created by `mkcert` and your existing npm scripts):
+ * - certs/localhost+2.pem
+ * - certs/localhost+2-key.pem
+ *
+ * If the cert files are missing, Vite will fall back to HTTP and log a warning.
+ */
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+
+function resolveCert(file: string) {
+  const p = path.resolve(rootDir, "certs", file);
+  return fs.existsSync(p) ? p : null;
+}
+
+const certFile = resolveCert("localhost+2.pem");
+const keyFile = resolveCert("localhost+2-key.pem");
+
+const httpsConfig =
+  certFile && keyFile
+    ? {
+        cert: fs.readFileSync(certFile),
+        key: fs.readFileSync(keyFile),
+      }
+    : undefined;
+
+// Helpful log to indicate protocol choice
+if (!httpsConfig) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[vite] HTTPS disabled: mkcert files not found at certs/localhost+2.pem and certs/localhost+2-key.pem.\n" +
+      "Run `npm run certs:install` then `npm run certs:generate` to create local dev certificates.",
+  );
+} else {
+  // eslint-disable-next-line no-console
+  console.log("[vite] HTTPS enabled with mkcert-generated certificates.");
+}
+
+export default defineConfig({
+  plugins: [
+    {
+      name: "request-logger",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          console.log(`[vite] ${req.method} ${req.url}`);
+          next();
+        });
+      },
+    },
+  ],
+  server: {
+    https: httpsConfig,
+    port: 5173,
+    open: false,
+  },
+});
+
+```
+
+
+**Tool Call: Read file `package.json`**
+Status: Completed
+
+```speedometer/package.json
+{
+  "name": "speedometer",
+  "version": "0.0.21",
+  "description": "Minimal PWA speedometer that displays GPS speed. Includes TypeScript script to render PNG icons from SVG using sharp.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start:https:auto": "tsx scripts/start-https.ts",
+    "render:icons": "tsx scripts/render-icons.ts --out=icons/generated --sizes=192,512",
+    "render:icons:custom": "tsx scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated",
+    "certs:install": "mkcert -install",
+    "certs:generate": "cd certs && mkcert localhost 127.0.0.1 ::1",
+    "postinstall": "npm run render:icons && ( command -v mkcert >/dev/null 2>&1 && npm run certs:install && npm run certs:generate || echo \"Skipping mkcert (mkcert not found)\" )"
+  },
+  "dependencies": {
+    "sharp": "^0.33.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.8",
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^22.7.5",
+    "serve": "^14.2.5",
+    "tsx": "^4.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8",
+    "wrangler": "^4.54.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
+```
+
+
+**Tool Call: Read file `dist/index.html`**
+Status: Completed
+
+```speedometer/dist/index.html
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="/assets/manifest-Ce7PV5gg.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="/assets/icon-DXc-qQKZ.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/assets/icon-192-PVSUhMCD.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+      <script type="module" crossorigin src="/assets/index-GxBfy82E.js"></script>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+
+        <!-- Register service worker -->
+    </body>
+</html>
+
+```
+
+
+**Tool Call: List the `speedometer/icons` directory's contents**
+Status: Completed
+
+# Folders:
+speedometer/icons/generated
+
+# Files:
+speedometer/icons/README.txt
+speedometer/icons/icon.svg
+
+
+**Tool Call: Read file `icons/README.txt`**
+Status: Completed
+
+```speedometer/icons/README.txt
+Icon placeholders for the Speedometer PWA
+
+Files required:
+- icon-192.png (192x192, PNG)
+- icon-512.png (512x512, PNG)
+
+Guidelines:
+- Use a square canvas with transparent background.
+- Prefer a simple, high-contrast symbol (e.g., circular dial with a needle).
+- Keep important artwork within the safe area (~80% center) for maskable icons.
+- Avoid fine details that won’t be visible at small sizes.
+- Export as PNG, no alpha premultiplication issues (standard transparency is fine).
+
+Maskable icons:
+- These icons are referenced with "purpose": "any maskable" in the manifest.
+- Ensure the artwork fits nicely when masked (rounded shapes are best).
+- Leave some padding around the edges so nothing is clipped.
+
+Quick generation tips:
+- Use any vector editor (Figma, Sketch, Illustrator) or a simple raster editor.
+- Create the 512x512 first, then downscale to 192x192 to maintain consistency.
+- Consider a dark background (#111) or transparent; the app uses a dark theme.
+
+Testing:
+- After placing icons, open the app and check browser install prompt (Add to Home Screen).
+- Verify how the icon looks on Android and iOS (iOS uses the apple-touch-icon and may apply its own mask/rounding).
+- Ensure manifest paths are correct:
+  - icons/icon-192.png
+  - icons/icon-512.png
+
+```
+
+
+**Tool Call: List the `speedometer/dist` directory's contents**
+Status: Completed
+
+# Folders:
+speedometer/dist/assets
+
+# Files:
+speedometer/dist/index.html
+
+
+**Tool Call: List the `speedometer/dist/assets` directory's contents**
+Status: Completed
+
+speedometer/dist/assets is empty.
+
+
+**Tool Call: Read file `wrangler.toml`**
+Status: Completed
+
+```speedometer/wrangler.toml
+name = "speedometer"
+
+# Cloudflare Pages configuration: use the project root as the output directory
+pages_build_output_dir = "."
+
+```
+
+
+**Tool Call: Search files for regex `service-worker\.`**
+Status: Completed
+
+Showing matches 1-20 (there were more matches found; use offset: 20 to see next page):
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L288-292
+```
+speedometer/package-lock.json
+speedometer/package.json
+speedometer/service-worker.js
+speedometer/tsconfig.json
+speedometer/wrangler.toml
+```
+
+### L297-301
+```
+
+```json
+{"Text":"<!doctype html>\n<html lang=\"en\">\n    <head>\n        <meta charset=\"utf-8\" />\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n        <title>Speedometer</title>\n        <meta name=\"theme-color\" content=\"#111111\" />\n\n        <!-- PWA manifest -->\n        <link rel=\"manifest\" href=\"manifest.webmanifest\" />\n        <link rel=\"icon\" type=\"image/svg+xml\" href=\"icons/icon.svg\" />\n\n        <!-- iOS PWA support -->\n        <meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n        <meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />\n        <link rel=\"apple-touch-icon\" href=\"icons/generated/icon-192.png\" />\n\n        <style>\n            :root {\n                color-scheme: dark light;\n            }\n            html,\n            body {\n                height: 100%;\n                overflow: hidden;\n                overscroll-behavior: none;\n                -ms-overflow-style: none;\n            }\n            body {\n                margin: 0;\n                font-family:\n                    system-ui,\n                    -apple-system,\n                    Segoe UI,\n                    Roboto,\n                    Helvetica,\n                    Arial,\n                    sans-serif;\n                background: #111;\n                color: #eee;\n                display: grid;\n                place-items: center;\n                touch-action: none;\n                overscroll-behavior: none;\n            }\n            .container {\n                text-align: center;\n            }\n            .speed {\n                font-size: clamp(64px, 24vw, 250px);\n                font-weight: 700;\n                line-height: 1;\n                letter-spacing: -0.02em;\n                font-variant-numeric: tabular-nums lining-nums;\n                font-feature-settings:\n                    \"tnum\" 1,\n                    \"lnum\" 1;\n            }\n            .speed::before {\n                content: \"\";\n                opacity: 0;\n                display: inline-block;\n                font: inherit;\n                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */\n            }\n            .speed::after {\n                content: \"\";\n                opacity: 0;\n                display: inline-block;\n                font: inherit;\n                width: 1.25ch;\n            }\n            .unit {\n                font-size: clamp(22px, 7vw, 44px);\n                opacity: 0.7;\n                margin-top: 8px;\n            }\n            .status {\n                position: fixed;\n                bottom: 12px;\n                left: 50%;\n                transform: translateX(-50%);\n                font-size: 20px;\n                opacity: 0.7;\n            }\n            button#unitToggle {\n                position: fixed;\n                top: 12px;\n                right: 12px;\n                background: #222;\n                color: #eee;\n                border: 1px solid #333;\n                border-radius: 8px;\n                padding: 8px 12px;\n                font-size: 20px;\n                cursor: pointer;\n            }\n            button#unitToggle:active {\n                transform: translateY(1px);\n            }\n        </style>\n    </head>\n    <body>\n        <button id=\"unitToggle\" aria-label=\"Toggle speed units\">mph</button>\n        <div class=\"container\">\n            <div id=\"speed\" class=\"speed\"></div>\n            <div id=\"unit\" class=\"unit\">mph</div>\n        </div>\n        <div id=\"status\" class=\"status\">Waiting for GPS...</div>\n\n        <!-- App logic -->\n        <script src=\"app.js\"></script>\n        <!-- Register service worker -->\n        <script>\n            if (\"serviceWorker\" in navigator) {\n                window.addEventListener(\"load\", () => {\n                    navigator.serviceWorker\n                        .register(\"service-worker.js\")\n                        .catch((e) => console.error(\"SW registration failed:\", e));\n                });\n            }\n        </script>\n    </body>\n</html>\n"}
+```
+
+```
+
+### L465-469
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L677-681
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L947-951
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L1697-1701
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L1785-1789
+```
+- You can show a “cache version” in the UI so you know which build is active.
+
+If the app still doesn’t update after these steps, your Service Worker might be serving an old cache aggressively. I can adjust your `service-worker.js` to use a versioned cache and a “skipWaiting + clients.claim” strategy to ensure updates apply immediately on next launch.
+
+## User
+```
+
+### L1803-1807
+```
+
+```json
+{"Text":"<!doctype html>\n<html lang=\"en\">\n    <head>\n        <meta charset=\"utf-8\" />\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n        <title>Speedometer</title>\n        <meta name=\"theme-color\" content=\"#111111\" />\n\n        <!-- PWA manifest -->\n        <link rel=\"manifest\" href=\"manifest.webmanifest\" />\n        <link rel=\"icon\" type=\"image/svg+xml\" href=\"icons/icon.svg\" />\n\n        <!-- iOS PWA support -->\n        <meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n        <meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />\n        <link rel=\"apple-touch-icon\" href=\"icons/generated/icon-192.png\" />\n\n        <style>\n            :root {\n                color-scheme: dark light;\n            }\n            html,\n            body {\n                height: 100%;\n                overflow: hidden;\n                overscroll-behavior: none;\n                -ms-overflow-style: none;\n            }\n            body {\n                margin: 0;\n                font-family:\n                    system-ui,\n                    -apple-system,\n                    Segoe UI,\n                    Roboto,\n                    Helvetica,\n                    Arial,\n                    sans-serif;\n                background: #111;\n                color: #eee;\n                display: grid;\n                place-items: center;\n                touch-action: none;\n                overscroll-behavior: none;\n            }\n            .container {\n                text-align: center;\n            }\n            .speed {\n                font-size: clamp(64px, 24vw, 250px);\n                font-weight: 700;\n                line-height: 1;\n                letter-spacing: -0.02em;\n                font-variant-numeric: tabular-nums lining-nums;\n                font-feature-settings:\n                    \"tnum\" 1,\n                    \"lnum\" 1;\n            }\n            .speed::before {\n                content: \"\";\n                opacity: 0;\n                display: inline-block;\n                font: inherit;\n                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */\n            }\n            .speed::after {\n                content: \"\";\n                opacity: 0;\n                display: inline-block;\n                font: inherit;\n                width: 1.25ch;\n            }\n            .unit {\n                font-size: clamp(22px, 7vw, 44px);\n                opacity: 0.7;\n                margin-top: 8px;\n            }\n            .status {\n                position: fixed;\n                bottom: 12px;\n                left: 50%;\n                transform: translateX(-50%);\n                font-size: 20px;\n                opacity: 0.7;\n            }\n            button#unitToggle {\n                position: fixed;\n                top: 12px;\n                right: 12px;\n                background: #222;\n                color: #eee;\n                border: 1px solid #333;\n                border-radius: 8px;\n                padding: 8px 12px;\n                font-size: 20px;\n                cursor: pointer;\n            }\n            button#unitToggle:active {\n                transform: translateY(1px);\n            }\n        </style>\n    </head>\n    <body>\n        <button id=\"unitToggle\" aria-label=\"Toggle speed units\">mph</button>\n        <div class=\"container\">\n            <div id=\"speed\" class=\"speed\"></div>\n            <div id=\"unit\" class=\"unit\">mph</div>\n        </div>\n        <div id=\"status\" class=\"status\">Waiting for GPS...</div>\n\n        <!-- App logic -->\n        <script src=\"app.js\"></script>\n        <!-- Register service worker -->\n        <script>\n            if (\"serviceWorker\" in navigator) {\n                window.addEventListener(\"load\", () => {\n                    navigator.serviceWorker\n                        .register(\"service-worker.js\")\n                        .catch((e) => console.error(\"SW registration failed:\", e));\n                });\n            }\n        </script>\n    </body>\n</html>\n"}
+```
+
+```
+
+### L1934-1938
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L2330-2334
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L2393-2397
+```
+- In Safari (iOS), delete the installed PWA and clear Website Data for your origin to force a fresh load.
+
+If you want, I can configure your `service-worker.js` and the static headers to make updates propagate predictably while still keeping good caching for versioned assets.
+
+
+```
+
+## Matches in speedometer/editor_llm_logs/Cloudflare Pages Wrangler Authentication Error
+
+### L98-102
+```
+speedometer/package.json
+speedometer/pwa-detection.js
+speedometer/service-worker.js
+speedometer/tsconfig.json
+speedometer/wrangler.toml
+```
+
+## Matches in speedometer/editor_llm_logs/Convert Speedometer App to TypeScript
+
+### L76-77
+```
+file:///Users/samuel-skean/Coding/speedometer/service-worker.js
+
+```
+
+### L321-325
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+### L477-478
+```
+**Tool Call: Read file `service-worker.js`**
+Status: Completed
+```
+
+### L480-490
+```
+```/Users/samuel-skean/Coding/speedometer/service-worker.js
+/**
+ * Offline-first service worker for Speedometer PWA.
+ * Follows redirects and caches the final target, never a redirected response.
+ * When a redirect occurs, the final response is cached under BOTH:
+ * - the original request URL, and
+ * - the final URL after redirects (if same-origin).
+ */
+
+const CACHE_VERSION = "0.0.18";
+const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
+```
+
+185 lines remaining in ancestor node. Read the file to see all.
+
+### L732-733
+```
+**Tool Call: Copy `/Users/samuel-skean/Coding/speedometer/service-worker.js` to `/Users/samuel-skean/Coding/speedometer/src/service-worker.ts`**
+Status: Completed
+```
+
+### L735-736
+```
+Copied /Users/samuel-skean/Coding/speedometer/service-worker.js to /Users/samuel-skean/Coding/speedometer/src/service-worker.ts
+
+```
+
+### L798-806
+```
+    },
+    async closeBundle() {
+      // Transpile and emit src/service-worker.ts to dist/service-worker.js
+      const root = resolved.root ?? process.cwd();
+      const outDir = path.resolve(root, resolved.build.outDir ?? "dist");
+      const swSrc = path.resolve(root, "src", "service-worker.ts");
+      const swOut = path.join(outDir, "service-worker.js");
+
+      if (!fs.existsSync(swSrc)) {
+```
+
+### L975-979
+```
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+```
+
+
+**Tool Call: List the `speedometer/.github` directory's contents**
+Status: Completed
+
+# Folders:
+speedometer/.github/workflows
+
+
+**Tool Call: List the `speedometer/.github/workflows` directory's contents**
+Status: Completed
+
+
+# Files:
+speedometer/.github/workflows/biomejs.yml
+
+
+**Tool Call: Read file `.github/workflows/biomejs.yml`**
+Status: Completed
+
+```speedometer/.github/workflows/biomejs.yml
+name: Linter
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+      - name: Run Biome
+        run: biome ci .
+
+```
+
+
+**Tool Call: Read file `.gitignore`**
+Status: Completed
+
+```speedometer/.gitignore
+# macOS
+.DS_Store
+
+# Node dependencies
+node_modules/
+
+# Generated icons
+icons/generated/
+
+dist/
+
+# Optional: ignore local development certificates
+certs/
+
+```
+
+
+**Tool Call: Read file `tsconfig.json`**
+Status: Completed
+
+```speedometer/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2020", "DOM"],
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "scripts/**/*.d.ts"]
+}
+
+```
+
+
+**Tool Call: Search files for regex `pwa|service|manifest|geolocation|watchPosition|register\(|navigator\.serviceWorker|workbox`**
+Status: Completed
+
+Showing matches 1-20 (there were more matches found; use offset: 20 to see next page):
+
+## Matches in speedometer/editor_llm_logs/Adjust GPS Accuracy Indicator for PWA
+
+### L1-5
+```
+## User
+
+If the app is installed as a PWA (maybe you can use the absence of the address bar for this?), move the gps accuracy indicator up to where it would be if there was an address bar.
+
+**Tool Call: Search files for regex `accuracy|GPS accuracy|accuracy indicator|gpsAccuracy|accuracyIndicator|GPSAccuracy`**
+```
+
+### L17-32
+```
+## Assistant
+
+I can’t find your codebase files to implement this directly, but here’s a clean approach you can drop in to detect when the app is running as an installed PWA and adjust the GPS accuracy indicator’s vertical position accordingly.
+
+Key ideas:
+- Detect installed PWA via CSS media `display-mode: standalone` and `navigator.standalone` for iOS.
+- Add a `pwa-installed` class to the `body` so you can toggle layout differences in CSS.
+- Use `env(safe-area-inset-top)` to respect notches and status bars.
+- Optionally use `window.visualViewport` to refine the offset when the browser UI (address bar) collapses or expands.
+
+Add a small utility to detect PWA and tag the `body`:
+```/dev/null/pwa-detection.js#L1-100
+(function () {
+  function isPwaInstalled() {
+    // Standard (Chrome, Edge, etc.)
+    const standaloneMatch = window.matchMedia('(display-mode: standalone)').matches;
+```
+
+### L42-52
+```
+  }
+
+  function applyPwaClass() {
+    if (isPwaInstalled()) {
+      document.documentElement.classList.add('pwa-installed');
+      document.body.classList.add('pwa-installed');
+    } else {
+      document.documentElement.classList.remove('pwa-installed');
+      document.body.classList.remove('pwa-installed');
+    }
+  }
+```
+
+### L53-57
+```
+
+  // Initial check
+  applyPwaClass();
+
+  // Some Android browsers can change display-mode after install; listen for changes if supported
+```
+
+### L58-64
+```
+  const mq = window.matchMedia('(display-mode: standalone)');
+  if (mq && typeof mq.addEventListener === 'function') {
+    mq.addEventListener('change', applyPwaClass);
+  } else if (mq && typeof mq.addListener === 'function') {
+    mq.addListener(applyPwaClass);
+  }
+
+```
+
+### L86-90
+```
+/* If your “move up” means placing it nearer the top when installed,
+   use a top offset that accounts for safe areas and typical status bar height */
+.pwa-installed .gps-accuracy-indicator {
+  bottom: auto;
+  top: calc(env(safe-area-inset-top) + 8px); /* Nudged below system UI */
+```
+
+### L100-108
+```
+}
+
+.pwa-installed .gps-accuracy-indicator {
+  top: var(--accuracy-top-offset);
+}
+
+/* Optional: when the browser UI collapses in non-PWA mode, you might
+   lift the indicator slightly. This can be refined via JS with visualViewport. */
+```
+```
+
+### L114-118
+```
+    // If you have a header element that sits below the address bar:
+    const header = document.querySelector('.app-header');
+    const isInstalled = document.body.classList.contains('pwa-installed');
+
+    if (!header) return;
+```
+
+### L139-143
+```
+
+How to wire this up:
+- Include `pwa-detection.js` early (before rendering or in your app bootstrap) so the `pwa-installed` class is available for CSS.
+- Ensure your accuracy indicator element uses the `.gps-accuracy-indicator` class in your HTML/JS framework.
+- If you have a header element, add `.app-header` or update the selectors accordingly.
+```
+
+### L157-171
+```
+## Assistant
+
+Great, thanks for the detail. Since the GPS accuracy indicator uses the id `status`, here’s how to adjust its position when the app is installed as a PWA.
+
+What you’ll add:
+- A lightweight PWA detection script that toggles a `pwa-installed` class on `body`/`html`.
+- CSS rules targeting `#status` to move it up when `pwa-installed` is present, accounting for safe areas.
+- Optional layout refinement to position `#status` just below your header (if you have one).
+
+PWA detection:
+```/dev/null/pwa-detection.js#L1-100
+(function () {
+  function isPwaInstalled() {
+    const standaloneMatch = window.matchMedia('(display-mode: standalone)').matches;
+    const iOSStandalone = typeof navigator !== 'undefined' && 'standalone' in navigator && navigator.standalone;
+```
+
+### L175-197
+```
+  }
+
+  function applyPwaClass() {
+    const el = document.documentElement;
+    const body = document.body;
+    if (isPwaInstalled()) {
+      el.classList.add('pwa-installed');
+      body.classList.add('pwa-installed');
+    } else {
+      el.classList.remove('pwa-installed');
+      body.classList.remove('pwa-installed');
+    }
+  }
+
+  applyPwaClass();
+
+  const mq = window.matchMedia('(display-mode: standalone)');
+  if (mq && typeof mq.addEventListener === 'function') {
+    mq.addEventListener('change', applyPwaClass);
+  } else if (mq && typeof mq.addListener === 'function') {
+    mq.addListener(applyPwaClass);
+  }
+
+```
+
+### L215-220
+```
+}
+
+/* When installed as a PWA, move it up to where it would sit with an address bar */
+.pwa-installed #status {
+  bottom: auto;
+  top: calc(env(safe-area-inset-top) + 8px); /* below status/notch area */
+```
+
+### L226-230
+```
+}
+
+.pwa-installed #status {
+  top: var(--status-top-offset);
+}
+```
+
+### L236-240
+```
+  function updateStatusOffset() {
+    const header = document.querySelector('.app-header'); // change to your header selector
+    const isInstalled = document.body.classList.contains('pwa-installed');
+
+    if (!header || !isInstalled) {
+```
+
+### L258-266
+```
+
+How to wire it up:
+- Include `pwa-detection.js` early in your app’s bootstrap so the `pwa-installed` class is set before layout.
+- Ensure the CSS above is loaded (or adapt in your existing stylesheet).
+- If you have a header, include `layout-adjustments.js` and set the correct header selector.
+
+This will move `#status` up when running as an installed PWA, approximating the position it would be at if there were a browser address bar. If you can share your actual file paths, I’ll integrate these snippets directly into your project.
+
+## User
+```
+
+### L285-292
+```
+speedometer/biome.json
+speedometer/index.html
+speedometer/manifest.webmanifest
+speedometer/package-lock.json
+speedometer/package.json
+speedometer/service-worker.js
+speedometer/tsconfig.json
+speedometer/wrangler.toml
+```
+
+### L297-301
+```
+
+```json
+{"Text":"<!doctype html>\n<html lang=\"en\">\n    <head>\n        <meta charset=\"utf-8\" />\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n        <title>Speedometer</title>\n        <meta name=\"theme-color\" content=\"#111111\" />\n\n        <!-- PWA manifest -->\n        <link rel=\"manifest\" href=\"manifest.webmanifest\" />\n        <link rel=\"icon\" type=\"image/svg+xml\" href=\"icons/icon.svg\" />\n\n        <!-- iOS PWA support -->\n        <meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n        <meta name=\"apple-mobile-web-app-status-bar-style\" content=\"black-translucent\" />\n        <link rel=\"apple-touch-icon\" href=\"icons/generated/icon-192.png\" />\n\n        <style>\n            :root {\n                color-scheme: dark light;\n            }\n            html,\n            body {\n                height: 100%;\n                overflow: hidden;\n                overscroll-behavior: none;\n                -ms-overflow-style: none;\n            }\n            body {\n                margin: 0;\n                font-family:\n                    system-ui,\n                    -apple-system,\n                    Segoe UI,\n                    Roboto,\n                    Helvetica,\n                    Arial,\n                    sans-serif;\n                background: #111;\n                color: #eee;\n                display: grid;\n                place-items: center;\n                touch-action: none;\n                overscroll-behavior: none;\n            }\n            .container {\n                text-align: center;\n            }\n            .speed {\n                font-size: clamp(64px, 24vw, 250px);\n                font-weight: 700;\n                line-height: 1;\n                letter-spacing: -0.02em;\n                font-variant-numeric: tabular-nums lining-nums;\n                font-feature-settings:\n                    \"tnum\" 1,\n                    \"lnum\" 1;\n            }\n            .speed::before {\n                content: \"\";\n                opacity: 0;\n                display: inline-block;\n                font: inherit;\n                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */\n            }\n            .speed::after {\n                content: \"\";\n                opacity: 0;\n                display: inline-block;\n                font: inherit;\n                width: 1.25ch;\n            }\n            .unit {\n                font-size: clamp(22px, 7vw, 44px);\n                opacity: 0.7;\n                margin-top: 8px;\n            }\n            .status {\n                position: fixed;\n                bottom: 12px;\n                left: 50%;\n                transform: translateX(-50%);\n                font-size: 20px;\n                opacity: 0.7;\n            }\n            button#unitToggle {\n                position: fixed;\n                top: 12px;\n                right: 12px;\n                background: #222;\n                color: #eee;\n                border: 1px solid #333;\n                border-radius: 8px;\n                padding: 8px 12px;\n                font-size: 20px;\n                cursor: pointer;\n            }\n            button#unitToggle:active {\n                transform: translateY(1px);\n            }\n        </style>\n    </head>\n    <body>\n        <button id=\"unitToggle\" aria-label=\"Toggle speed units\">mph</button>\n        <div class=\"container\">\n            <div id=\"speed\" class=\"speed\"></div>\n            <div id=\"unit\" class=\"unit\">mph</div>\n        </div>\n        <div id=\"status\" class=\"status\">Waiting for GPS...</div>\n\n        <!-- App logic -->\n        <script src=\"app.js\"></script>\n        <!-- Register service worker -->\n        <script>\n            if (\"serviceWorker\" in navigator) {\n                window.addEventListener(\"load\", () => {\n                    navigator.serviceWorker\n                        .register(\"service-worker.js\")\n                        .catch((e) => console.error(\"SW registration failed:\", e));\n                });\n            }\n        </script>\n    </body>\n</html>\n"}
+```
+
+```
+
+### L304-308
+```
+
+```json
+{"Text":"/**\n * Basic speedometer using the Geolocation API.\n * - Prefers native position.coords.speed (m/s) when available.\n * - Falls back to computing speed via Haversine distance over time.\n * - Displays speed centered on screen; unit toggle between mph and km/h.\n */\n\nconst speedEl = document.getElementById(\"speed\");\nconst unitEl = document.getElementById(\"unit\");\nconst statusEl = document.getElementById(\"status\");\nconst unitToggleBtn = document.getElementById(\"unitToggle\");\nspeedEl.style.display = \"inline-block\";\nspeedEl.style.textAlign = \"center\";\nspeedEl.style.fontVariantNumeric = \"tabular-nums lining-nums\";\nspeedEl.style.fontFeatureSettings = '\"tnum\" 1, \"lnum\" 1';\n\nconst Units = {\n  MPH: \"mph\",\n  KPH: \"km/h\",\n};\n\nlet currentUnit = localStorage.getItem(\"speed-unit\") || Units.MPH;\nunitEl.textContent = currentUnit;\nunitToggleBtn.textContent = currentUnit;\n\nunitToggleBtn.addEventListener(\"click\", () => {\n  currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;\n  localStorage.setItem(\"speed-unit\", currentUnit);\n  unitEl.textContent = currentUnit;\n  unitToggleBtn.textContent = currentUnit;\n\n  // Re-render current speed in new units if we have a last value\n  if (lastComputedSpeed != null) {\n    renderSpeed(lastComputedSpeed);\n  }\n});\n\nfunction renderSpeed(ms) {\n  let value;\n  if (ms == null || !Number.isFinite(ms)) {\n    value = 0.0;\n  } else {\n    value = currentUnit === Units.MPH ? ms * 2.2369362920544 : ms * 3.6;\n  }\n  const clamped = Math.min(Math.max(value, 0), 999.9);\n  const rounded = Math.round(clamped * 10) / 10;\n  const s = rounded.toFixed(1); // e.g., \"5.0\", \"123.4\"\n  const [intPart, decPart] = s.split(\".\");\n  // Reserve space for \"00.\" without drawing it; center the 3-digit integer block\n  const html =\n    '<span style=\"display:inline-block;width:3ch;position:relative;text-align:right;\">' +\n    intPart +\n    '<span style=\"position:absolute;left:100%;transform:translateX(0)\">.' +\n    decPart +\n    \"</span></span>\";\n  speedEl.innerHTML = html;\n}\n\n// Haversine distance in meters between two lat/lon coords\nfunction haversineMeters(lat1, lon1, lat2, lon2) {\n  const toRad = (d) => (d * Math.PI) / 180;\n  const R = 6371000; // Earth radius (m)\n  const dLat = toRad(lat2 - lat1);\n  const dLon = toRad(lon2 - lon1);\n  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;\n  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));\n  return R * c;\n}\n\nlet lastFix = null; // { lat, lon, ts }\nlet lastComputedSpeed = null; // meters per second\n\nfunction updateSpeed(ms) {\n  lastComputedSpeed = ms;\n  renderSpeed(ms);\n}\n\nfunction setStatus(text) {\n  statusEl.textContent = text;\n}\n\nfunction handlePosition(pos) {\n  const { latitude, longitude, speed, accuracy } = pos.coords;\n  const ts = pos.timestamp;\n\n  // Prefer native speed if provided (m/s). Some platforms return null.\n  if (speed != null) {\n    const validNative = Number.isFinite(speed) && speed >= 0;\n    updateSpeed(validNative ? speed : lastComputedSpeed);\n  } else if (lastFix) {\n    const dtMs = ts - lastFix.ts;\n    if (dtMs > 0) {\n      const distM = haversineMeters(lastFix.lat, lastFix.lon, latitude, longitude);\n      const ms = distM / (dtMs / 1000);\n\n      // Filter unrealistic spikes (e.g., GPS jumps)\n      const maxHumanSpeedMs = 100; // ~224 mph\n      const reasonable = Number.isFinite(ms) && ms >= 0 && ms <= maxHumanSpeedMs;\n\n      updateSpeed(reasonable ? ms : lastComputedSpeed);\n    }\n  } else {\n    // First fix—no speed available yet without native speed\n    // Leave the display as is\n  }\n\n  lastFix = { lat: latitude, lon: longitude, ts };\n  if (accuracy != null && Number.isFinite(accuracy)) {\n    setStatus(`Accuracy: ±${Math.round(accuracy)}m`);\n  } else {\n    setStatus(\"GPS fix acquired\");\n  }\n}\n\nfunction handleError(err) {\n  switch (err.code) {\n    case err.PERMISSION_DENIED:\n      setStatus(\"Location permission denied. Enable it to see speed.\");\n      break;\n    case err.POSITION_UNAVAILABLE:\n      setStatus(\"Location unavailable. Move to open sky for GPS.\");\n      break;\n    case err.TIMEOUT:\n      setStatus(\"Location timeout. Trying again...\");\n      break;\n    default:\n      setStatus(`Error: ${err.message}`);\n  }\n}\n\n// Request high-accuracy GPS and frequent updates\nconst watchOptions = {\n  enableHighAccuracy: true,\n  maximumAge: 1000, // accept 1s old cached positions\n  timeout: 10000, // 10s per fix\n};\n\nif (\"geolocation\" in navigator) {\n  setStatus(\"Requesting GPS...\");\n  navigator.geolocation.watchPosition(handlePosition, handleError, watchOptions);\n} else {\n  setStatus(\"Geolocation not supported on this device.\");\n}\n"}
+```
+
+```
+
+### L320-328
+```
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+```
+
+### L398-402
+```
+                opacity: 0.7;
+            }
+            .pwa-installed #status {
+                bottom: auto;
+                top: var(--status-top-offset);
+```
+
+
+**Tool Call: wrangler.toml**
+Status: Completed
+
+Diff: wrangler.toml
+```
+name = "speedometer"
+
+# Cloudflare Pages configuration: use the project root as the output directory
+pages_build_output_dir = "dist"
+
+```
+
+
+**Tool Call: vite.config.ts**
+Status: Completed
+
+Diff: vite.config.ts
+```
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vite";
+import { build as esbuild } from "esbuild";
+
+/**
+ * Minimal Vite config to enable HTTPS using mkcert-generated certs.
+ *
+ * Expected cert files (created by `mkcert` and your existing npm scripts):
+ * - certs/localhost+2.pem
+ * - certs/localhost+2-key.pem
+ *
+ * If the cert files are missing, Vite will fall back to HTTP and log a warning.
+ */
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
+let resolvedConfig: import("vite").ResolvedConfig;
+
+function resolveCert(file: string) {
+  const p = path.resolve(rootDir, "certs", file);
+  return fs.existsSync(p) ? p : null;
+}
+
+const certFile = resolveCert("localhost+2.pem");
+const keyFile = resolveCert("localhost+2-key.pem");
+
+const httpsConfig =
+  certFile && keyFile
+    ? {
+        cert: fs.readFileSync(certFile),
+        key: fs.readFileSync(keyFile),
+      }
+    : undefined;
+
+// Helpful log to indicate protocol choice
+if (!httpsConfig) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[vite] HTTPS disabled: mkcert files not found at certs/localhost+2.pem and certs/localhost+2-key.pem.\n" +
+      "Run `npm run certs:install` then `npm run certs:generate` to create local dev certificates.",
+  );
+} else {
+  // eslint-disable-next-line no-console
+  console.log("[vite] HTTPS enabled with mkcert-generated certificates.");
+}
+
+export default defineConfig({
+  plugins: [
+    {
+      name: "request-logger",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          console.log(`[vite] ${req.method} ${req.url}`);
+          next();
+        });
+      },
+    },
+    {
+      name: "service-worker-builder",
+      apply: "build",
+      configResolved(config) {
+        resolvedConfig = config;
+      },
+      async closeBundle() {
+        const root = resolvedConfig?.root ?? process.cwd();
+        const outDir = path.resolve(
+          root,
+          resolvedConfig?.build?.outDir ?? "dist",
+        );
+        const swSrc = path.resolve(root, "src", "service-worker.ts");
+        const swOut = path.join(outDir, "service-worker.js");
+
+        if (!fs.existsSync(swSrc)) {
+          console.warn(
+            "[sw-builder] src/service-worker.ts not found; skipping",
+          );
+          return;
+        }
+
+        await esbuild({
+          entryPoints: [swSrc],
+          outfile: swOut,
+          bundle: true,
+          format: "iife",
+          platform: "browser",
+          target: "es2020",
+          sourcemap: false,
+        });
+
+        console.log(`[sw-builder] emitted ${path.relative(root, swOut)}`);
+      },
+    },
+  ],
+  server: {
+    https: httpsConfig,
+    port: 5173,
+    open: false,
+  },
+});
+
+```
+
+
+**Tool Call: src/app.ts**
+Status: Completed
+
+Diff: src/app.ts
+```
+/**
+ * Basic speedometer using the Geolocation API, simplified.
+ * - Uses ONLY native position.coords.speed (m/s).
+ * - No distance/time fallback when speed is unavailable.
+ * - Displays speed centered on screen; unit toggle between mph and km/h.
+ */
+
+const speedEl = document.getElementById("speed") as HTMLDivElement | null;
+const unitEl = document.getElementById("unit") as HTMLDivElement | null;
+const statusEl = document.getElementById("status") as HTMLDivElement | null;
+const unitToggleBtn = document.getElementById(
+  "unitToggle",
+) as HTMLButtonElement | null;
+
+const Units = {
+  MPH: "mph",
+  KPH: "km/h",
+} as const;
+type Unit = (typeof Units)[keyof typeof Units];
+
+const MPS_TO_MPH = 2.2369362920544;
+const MPS_TO_KPH = 3.6;
+
+let currentUnit: Unit =
+  (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
+let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
+
+function updateUnitUI(): void {
+  if (unitEl) unitEl.textContent = currentUnit;
+  if (unitToggleBtn) unitToggleBtn.textContent = currentUnit;
+}
+
+// Render the speed (expects m/s)
+function renderSpeed(ms: number): void {
+  if (!Number.isFinite(ms) || ms < 0) {
+    setStatus("FIXME: Error");
+    return;
+  }
+  const value = currentUnit === Units.MPH ? ms * MPS_TO_MPH : ms * MPS_TO_KPH;
+  const clamped = Math.min(Math.max(value, 0), 999);
+  const rounded = Math.round(clamped);
+  if (speedEl) speedEl.textContent = String(rounded);
+}
+
+function setStatus(text: string): void {
+  if (statusEl) statusEl.textContent = text;
+}
+
+function handlePosition(pos: GeolocationPosition): void {
+  const { speed, accuracy } = pos.coords;
+
+  // Update speed only when native speed is provided and valid
+  if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
+    lastSpeedMs = speed;
+    renderSpeed(speed);
+  }
+
+  // Status/accuracy
+  if (typeof accuracy === "number" && Number.isFinite(accuracy)) {
+    setStatus(`Accuracy: ±${Math.round(accuracy)}m`);
+  } else {
+    setStatus("GPS fix acquired");
+  }
+}
+
+function handleError(err: GeolocationPositionError): void {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      setStatus("Location permission denied. Enable it to see speed.");
+      break;
+    case err.POSITION_UNAVAILABLE:
+      setStatus("Location unavailable. Move to open sky for GPS.");
+      break;
+    case err.TIMEOUT:
+      setStatus("Location timeout. Trying again...");
+      break;
+    default:
+      setStatus(`Error: ${err.message}`);
+  }
+}
+
+function init(): void {
+  updateUnitUI();
+
+  // Unit toggle
+  unitToggleBtn?.addEventListener("click", () => {
+    currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
+    localStorage.setItem("speed-unit", currentUnit);
+    updateUnitUI();
+    // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
+    if (lastSpeedMs !== null) {
+      renderSpeed(lastSpeedMs);
+    }
+  });
+
+  // Request high-accuracy GPS and frequent updates
+  const watchOptions: PositionOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 1000, // accept 1s old cached positions
+    timeout: 10000, // 10s per fix
+  };
+
+  if ("geolocation" in navigator) {
+    setStatus("Requesting GPS...");
+    navigator.geolocation.watchPosition(
+      handlePosition,
+      handleError,
+      watchOptions,
+    );
+  } else {
+    setStatus("Geolocation not supported on this device.");
+  }
+}
+
+// Run immediately in module scope once DOM is ready enough for our elements
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init, { once: true });
+} else {
+  init();
+}
+
+// Register service worker from the app bundle so it’s included in production builds
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .catch((e) => console.error("SW registration failed:", e));
+  });
+}
+
+```
+
+
+**Tool Call: manifest.webmanifest**
+Status: Completed
+
+Diff: manifest.webmanifest
+```
+{
+  "name": "Speedometer",
+  "short_name": "Speedo",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "orientation": "portrait",
+  "description": "A simple PWA that shows your current speed from GPS.",
+  "icons": [
+    {
+      "src": "icons/generated/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/generated/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
+```
+
+
+**Tool Call: Read file `index.html`**
+Status: Completed
+
+```speedometer/index.html
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Speedometer</title>
+        <meta name="theme-color" content="#111111" />
+
+        <!-- PWA manifest -->
+        <link rel="manifest" href="manifest.webmanifest" />
+        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+
+        <!-- iOS PWA support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+
+        <style>
+            :root {
+                color-scheme: dark light;
+            }
+            html,
+            body {
+                height: 100%;
+                overflow: hidden;
+                overscroll-behavior: none;
+                -ms-overflow-style: none;
+            }
+            body {
+                margin: 0;
+                font-family:
+                    system-ui,
+                    -apple-system,
+                    Segoe UI,
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                background: #111;
+                color: #eee;
+                display: grid;
+                place-items: center;
+                touch-action: none;
+            }
+            .container {
+                text-align: center;
+            }
+            .speed {
+                font-size: clamp(64px, 24vw, 250px);
+                font-weight: 700;
+                line-height: 1;
+                font-variant-numeric: tabular-nums lining-nums;
+                font-feature-settings:
+                    "tnum" 1,
+                    "lnum" 1;
+            }
+            .speed::before {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0.25ch; /* reserve ~0.25 of a digit width to only allow for one extra left digit */
+            }
+            .speed::after {
+                content: "";
+                opacity: 0;
+                display: inline-block;
+                font: inherit;
+                width: 0ch;
+            }
+            .unit {
+                font-size: clamp(22px, 7vw, 44px);
+                opacity: 0.7;
+                margin-top: 8px;
+            }
+            .status {
+                position: fixed;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+                opacity: 0.7;
+            }
+            body.pwa-installed #status {
+                bottom: calc(env(safe-area-inset-bottom) + 10vh);
+            }
+            button#unitToggle {
+                position: fixed;
+                top: 12px;
+                right: 12px;
+                background: #222;
+                color: #eee;
+                border: 1px solid #333;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 20px;
+                cursor: pointer;
+            }
+            button#unitToggle:active {
+                transform: translateY(1px);
+            }
+        </style>
+    </head>
+    <body>
+        <button id="unitToggle" aria-label="Toggle speed units">mph</button>
+        <div class="container">
+            <div id="speed" class="speed"></div>
+            <div id="unit" class="unit">mph</div>
+        </div>
+        <div id="status" class="status">Waiting for GPS...</div>
+
+        <!-- App logic -->
+        <script type="module" src="/src/pwa-detection.ts"></script>
+
+        <script type="module" src="/src/app.ts"></script>
+        <!-- Register service worker -->
+        <script>
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", () => {
+                    navigator.serviceWorker
+                        .register("/service-worker.js")
+                        .catch((e) => console.error("SW registration failed:", e));
+                });
+            }
+        </script>
+    </body>
+</html>
+
+```
+
+
+## Assistant
+
+Thanks for the screenshot/context — that “does nothing” behavior lines up with the site serving unbuilt source (or a build missing its assets), so the JS never runs. I dug through your repo and found a couple issues that would cause exactly this:
+
+What was wrong
+- The site was being deployed from the repo root instead of the built output. That means the browser tried to load TypeScript from /src (or hashed assets that weren’t there), which fails silently on production — UI appears but nothing works.
+- The service worker wasn’t being emitted into dist, so even if the page loaded once, the PWA install could end up caching a broken setup.
+
+What I changed in the repo
+- Cloudflare Pages output directory: set to dist so only the built site is published.
+```speedometer/wrangler.toml#L1-2
+name = "speedometer"
+pages_build_output_dir = "dist"
+```
+- Ensure the service worker is actually bundled to dist/service-worker.js during vite build.
+```speedometer/vite.config.ts#L1-20
+import { build as esbuild } from "esbuild";
+/* ... */
+let resolvedConfig: import("vite").ResolvedConfig;
+/* ... another plugin ... */
+{
+  name: "service-worker-builder",
+  apply: "build",
+  configResolved(config) {
+    resolvedConfig = config;
+  },
+  async closeBundle() {
+    const root = resolvedConfig?.root ?? process.cwd();
+    const outDir = path.resolve(root, resolvedConfig?.build?.outDir ?? "dist");
+    const swSrc = path.resolve(root, "src", "service-worker.ts");
+    const swOut = path.join(outDir, "service-worker.js");
+    if (!fs.existsSync(swSrc)) return;
+    await esbuild({ entryPoints: [swSrc], outfile: swOut, bundle: true, format: "iife", platform: "browser", target: "es2020" });
+  },
+}
+```
+- Register the service worker from your app bundle (so it’s included in production).
+```speedometer/src/app.ts#L120-129
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .catch((e) => console.error("SW registration failed:", e));
+  });
+}
+```
+- Manifest start_url/scope set to absolute, so the PWA launches to the site root even when the manifest is fingerprinted under /assets.
+```speedometer/manifest.webmanifest#L1-8
+{
+  "name": "Speedometer",
+  "short_name": "Speedo",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  ...
+}
+```
+
+What you need to do to fix the live site
+1) Configure Cloudflare Pages build
+- Build command: npm ci && npm run build
+- Output directory: dist
+- Then redeploy.
+
+2) Verify locally before deploying
+- Run: npm run build
+- Ensure dist contains:
+  - dist/index.html
+  - dist/assets/... (fingerprinted JS/CSS/manifest/images)
+  - dist/service-worker.js (emitted by the new plugin)
+- Serve dist (e.g., npx serve dist) and load https://localhost version; confirm the UI renders and the status text updates.
+
+3) Hard refresh and clear old caches
+- Desktop: open your site, open DevTools, Application tab:
+  - Unregister the service worker.
+  - Clear storage (Cache Storage + Local Storage).
+  - Hard refresh.
+- Mobile (Safari/iOS):
+  - If installed, delete the PWA from the Home Screen.
+  - Settings → Safari → Advanced → Website Data → search your domain → Remove.
+  - Reopen in Safari, then “Add to Home Screen.”
+
+4) Reinstall and grant location permission
+- On first run you should see “Requesting GPS…” then a permission prompt. Accept it.
+- If no prompt, check:
+  - iOS: Settings → Privacy & Security → Location Services → Speedometer (or your domain entry) → While Using the App.
+  - Android: App info → Permissions → Location → Allow while using.
+
+Quick checks after redeploy
+- View Source on the live site: you should see a single fingerprinted JS like /assets/index-*.js (not /src/*.ts).
+- Network tab: /assets/index-*.js returns 200; /service-worker.js returns 200.
+- Application → Service Workers: one active worker for your origin.
+- Manifest tab: start_url is “/”.
+
+If you share your deployed URL, I can quickly confirm the above on the live build and spot anything else.
+
+If it still shows a blank/idle screen after these changes:
+- It’s almost always a stale service worker or a build misconfiguration (wrong output directory). Double-check step 1 and 3.
+- We can also add temporary console logging at app startup to confirm script execution, but with the correct build/deploy, you shouldn’t need it.
+

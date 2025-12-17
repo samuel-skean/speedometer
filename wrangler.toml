@@ -1,4 +1,4 @@
 name = "speedometer"
 
 # Cloudflare Pages configuration: use the project root as the output directory
-pages_build_output_dir = "."
+pages_build_output_dir = "dist"
