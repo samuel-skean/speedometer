@@ -78,8 +78,7 @@
                 bottom: calc(env(safe-area-inset-bottom) + 10vh);
             }
             .status {
-                grid-column: 2;
-                font-size: 20px;
+                font-size: 18px;
                 opacity: 0.7;
             }
             .github-link {
@@ -119,15 +118,29 @@
                 transform: translateY(1px);
             }
 
+            .bottom-left-controls {
+                display: flex;
+                align-items: center;
+                font-size: 18px;
+                opacity: 0.7;
+                text-align: left;
+            }
+
+            .bottom-left-controls input {
+                margin-left: 8px;
+            }
         </style>
     </head>
     <body>
-
         <div class="container">
             <div id="speed" class="speed"></div>
             <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
         </div>
         <div class="bottom-bar">
+            <div class="bottom-left-controls">
+                <label for="keepScreenOn">Stay<br>Awake</label>
+                <input type="checkbox" id="keepScreenOn" />
+            </div>
             <div id="status" class="status">Waiting for GPS...</div>
             <a href="https://github.com/samuel-skean/speedometer" target="_blank" class="github-link" aria-label="Source code">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
