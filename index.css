@@ -67,9 +67,6 @@ body {
   pointer-events: none;
   flex-shrink: 0;
 }
-body.pwa-installed .bottom-bar {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 2vh + 20px);
-}
 .status {
   font-size: 18px;
   opacity: 0.7;
