@@ -6,11 +6,8 @@
  */
 
 const speedEl = document.getElementById("speed") as HTMLDivElement | null;
-const unitEl = document.getElementById("unit") as HTMLDivElement | null;
 const statusEl = document.getElementById("status") as HTMLDivElement | null;
-const unitToggleBtn = document.getElementById(
-  "unitToggle",
-) as HTMLButtonElement | null;
+const unitBtn = document.getElementById("unit") as HTMLButtonElement | null;
 
 const Units = {
   MPH: "mph",
@@ -26,8 +23,7 @@ let currentUnit: Unit =
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 
 function updateUnitUI(): void {
-  if (unitEl) unitEl.textContent = currentUnit;
-  if (unitToggleBtn) unitToggleBtn.textContent = currentUnit;
+  if (unitBtn) unitBtn.textContent = currentUnit;
 }
 
 // Render the speed (expects m/s)
@@ -83,7 +79,7 @@ function init(): void {
   updateUnitUI();
 
   // Unit toggle
-  unitToggleBtn?.addEventListener("click", () => {
+  unitBtn?.addEventListener("click", () => {
     currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
     localStorage.setItem("speed-unit", currentUnit);
     updateUnitUI();

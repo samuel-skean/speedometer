@@ -41,6 +41,8 @@
                 display: grid;
                 place-items: center;
                 touch-action: none;
+                box-sizing: border-box;
+                padding-bottom: 8vh;
             }
             .container {
                 text-align: center;
@@ -56,21 +58,18 @@
                 text-align: right;
                 /* Reserve space for 3 digits (999) to prevent movement */
                 width: 3em;
-                display: inline-block;
+                display: block;
+                margin: 0 auto;
             }
-            .unit {
-                font-size: clamp(22px, 7vw, 44px);
-                opacity: 0.7;
-                margin-top: 8px;
-            }
+
             .bottom-bar {
                 position: fixed;
                 left: 0;
                 bottom: 12px;
                 width: 100%;
                 display: grid;
-                grid-template-columns: 1fr auto 1fr;
-                align-items: center;
+                grid-template-columns: 1fr;
+                justify-items: center;
                 padding: 12px;
                 box-sizing: border-box;
             }
@@ -80,11 +79,9 @@
             .status {
                 font-size: 20px;
                 opacity: 0.7;
-                justify-self: center;
             }
 
-
-            button#unitToggle {
+            button.unit {
                 background: #222;
                 color: #eee;
                 border: 1px solid #333;
@@ -92,21 +89,23 @@
                 padding: 8px 12px;
                 font-size: 20px;
                 cursor: pointer;
-                justify-self: start;
+                display: block;
+                margin: 8px auto 0;
             }
-            button#unitToggle:active {
+
+            button.unit:active {
                 transform: translateY(1px);
             }
+
         </style>
     </head>
     <body>
 
         <div class="container">
             <div id="speed" class="speed"></div>
-            <div id="unit" class="unit">mph</div>
+            <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
         </div>
         <div class="bottom-bar">
-            <button id="unitToggle" aria-label="Toggle speed units">mph</button>
             <div id="status" class="status">Waiting for GPS...</div>
         </div>
 
