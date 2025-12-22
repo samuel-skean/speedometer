@@ -62,14 +62,13 @@ body {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 12px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + 20px);
   box-sizing: border-box;
   pointer-events: none;
   flex-shrink: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
 }
 body.pwa-installed .bottom-bar {
-  padding-bottom: calc(env(safe-area-inset-bottom) + 2vh);
+  padding-bottom: calc(env(safe-area-inset-bottom) + 2vh + 20px);
 }
 .status {
   font-size: 18px;
