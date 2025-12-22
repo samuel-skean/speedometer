@@ -5,12 +5,16 @@
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
 
-const speedEl = document.getElementById("speed") as HTMLDivElement | null;
-const statusEl = document.getElementById("status") as HTMLDivElement | null;
-const unitBtn = document.getElementById("unit") as HTMLButtonElement | null;
+// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
+const speedEl = document.getElementById("speed")! as HTMLDivElement;
+// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
+const statusEl = document.getElementById("status")! as HTMLDivElement;
+// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
+const unitBtn = document.getElementById("unit")! as HTMLButtonElement;
+// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
 const keepScreenOnEl = document.getElementById(
   "keepScreenOn",
-) as HTMLInputElement | null;
+)! as HTMLInputElement;
 
 const Units = {
   MPH: "mph",
@@ -27,7 +31,7 @@ let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let wakeLock: WakeLockSentinel | null = null;
 
 function updateUnitUI(): void {
-  if (unitBtn) unitBtn.textContent = currentUnit;
+  unitBtn.textContent = currentUnit;
 }
 
 // Render the speed (expects m/s)
@@ -39,36 +43,36 @@ function renderSpeed(ms: number): void {
   const value = currentUnit === Units.MPH ? ms * MPS_TO_MPH : ms * MPS_TO_KPH;
   const clamped = Math.min(Math.max(value, 0), 999);
   const rounded = Math.round(clamped);
-  if (speedEl) speedEl.textContent = String(rounded);
+  speedEl.textContent = String(rounded);
 }
 
 function setStatus(text: string): void {
-  if (statusEl) statusEl.textContent = text;
+  statusEl.textContent = text;
 }
 
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
-    if (keepScreenOnEl) keepScreenOnEl.disabled = true;
+    keepScreenOnEl.disabled = true;
     return;
   }
 
   try {
     if (keepScreenOnEl?.checked) {
       wakeLock = await navigator.wakeLock.request("screen");
+      keepScreenOnEl.indeterminate = false;
       wakeLock.addEventListener("release", () => {
         // tristate checkbox: indeterminate when released by system
-        if (keepScreenOnEl) keepScreenOnEl.indeterminate = true;
+        keepScreenOnEl.indeterminate = true;
       });
     } else {
       wakeLock?.release();
       wakeLock = null;
+      keepScreenOnEl.indeterminate = false;
     }
-    if (keepScreenOnEl) {
-      localStorage.setItem("keepScreenOn", String(keepScreenOnEl.checked));
-    }
+    localStorage.setItem("keepScreenOn", String(keepScreenOnEl.checked));
   } catch (err) {
     console.error("Wake Lock error:", err);
-    if (keepScreenOnEl) keepScreenOnEl.checked = false;
+    keepScreenOnEl.checked = false;
   }
 }
 
@@ -120,15 +124,13 @@ function init(): void {
   });
 
   // Screen wake lock
-  if (keepScreenOnEl) {
-    keepScreenOnEl.addEventListener("change", handleWakeLock);
-    // Restore state from localStorage
-    const savedState = localStorage.getItem("keepScreenOn");
-    if (savedState) {
-      keepScreenOnEl.checked = savedState === "true";
-    }
-    handleWakeLock();
+  keepScreenOnEl.addEventListener("change", handleWakeLock);
+  // Restore state from localStorage
+  const savedState = localStorage.getItem("keepScreenOn");
+  if (savedState) {
+    keepScreenOnEl.checked = savedState === "true";
   }
+  handleWakeLock();
   // Re-acquire wake lock on visibility change
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
