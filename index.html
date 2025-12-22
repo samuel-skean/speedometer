@@ -93,6 +93,7 @@
                 font-size: 20px;
                 opacity: 0.7;
                 pointer-events: auto;
+                white-space: nowrap;
             }
             .github-link svg {
                 width: 24px;
@@ -102,6 +103,17 @@
             .github-link:hover {
                 opacity: 1;
                 text-decoration: underline;
+            }
+
+            @media (max-width: 600px) {
+                .status,
+                .github-link {
+                    font-size: 12px;
+                }
+                .github-link svg {
+                    width: 16px;
+                    height: 16px;
+                }
             }
 
             button.unit {
