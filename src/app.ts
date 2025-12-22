@@ -35,12 +35,16 @@ function updateUnitUI(): void {
 }
 
 // Render the speed (expects m/s)
-function renderSpeed(ms: number): void {
-  if (!Number.isFinite(ms) || ms < 0) {
+function renderSpeed(metersPerSecond: number): void {
+  if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
+    speedEl.innerHTML = "&mdash;&mdash;&mdash;";
     return;
   }
-  const value = currentUnit === Units.MPH ? ms * MPS_TO_MPH : ms * MPS_TO_KPH;
+  const value =
+    currentUnit === Units.MPH
+      ? metersPerSecond * MPS_TO_MPH
+      : metersPerSecond * MPS_TO_KPH;
   const clamped = Math.min(Math.max(value, 0), 999);
   const rounded = Math.round(clamped);
   speedEl.textContent = String(rounded);
@@ -77,6 +81,7 @@ async function handleWakeLock(): Promise<void> {
 }
 
 function handlePosition(pos: GeolocationPosition): void {
+  console.log("handlePosition", pos);
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
@@ -94,6 +99,7 @@ function handlePosition(pos: GeolocationPosition): void {
 }
 
 function handleError(err: GeolocationPositionError): void {
+  console.error("Geolocation error:", err);
   switch (err.code) {
     case err.PERMISSION_DENIED:
       setStatus("Location permission denied. Enable it to see speed.");
