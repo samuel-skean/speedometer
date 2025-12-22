@@ -124,6 +124,7 @@
                 font-size: 18px;
                 opacity: 0.7;
                 text-align: left;
+                pointer-events: auto;
             }
 
             .bottom-left-controls input {
@@ -153,15 +154,5 @@
         <script type="module" src="/src/pwa-detection.ts"></script>
 
         <script type="module" src="/src/app.ts"></script>
-        <!-- Register service worker -->
-        <script>
-            if ("serviceWorker" in navigator) {
-                window.addEventListener("load", () => {
-                    navigator.serviceWorker
-                        .register("/service-worker.js")
-                        .catch((e) => console.error("SW registration failed:", e));
-                });
-            }
-        </script>
     </body>
 </html>
