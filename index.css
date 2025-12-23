@@ -43,9 +43,7 @@ body {
   font-feature-settings:
     "tnum" 1,
     "lnum" 1;
-  text-align: right;
-  /* Reserve space for 3 digits (999) to prevent movement */
-  width: 3em;
+  text-align: center;
   display: block;
   margin: 0 auto;
 }

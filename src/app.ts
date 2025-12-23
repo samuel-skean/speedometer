@@ -38,7 +38,7 @@ function updateUnitUI(): void {
 function renderSpeed(metersPerSecond: number): void {
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
-    speedEl.innerHTML = "&mdash;&mdash;&mdash;";
+    speedEl.textContent = "--";
     return;
   }
   const value =
