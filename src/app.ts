@@ -4,21 +4,13 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
+import { Units, type Unit, convertSpeed } from "./logic";
 
 // Define DOM elements
 let speedEl: HTMLDivElement;
 let statusEl: HTMLDivElement;
 let unitBtn: HTMLButtonElement;
 let keepScreenOnEl: HTMLInputElement;
-
-const Units = {
-  MPH: "mph",
-  KPH: "km/h",
-} as const;
-type Unit = (typeof Units)[keyof typeof Units];
-
-const MPS_TO_MPH = 2.2369362920544;
-const MPS_TO_KPH = 3.6;
 
 // Mutable state
 let currentUnit: Unit;
@@ -31,17 +23,15 @@ function updateUnitUI(): void {
 
 // Render the speed (expects m/s)
 function renderSpeed(metersPerSecond: number): void {
+  // Check validity
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
     if (speedEl) speedEl.innerHTML = "&mdash;&mdash;&mdash;";
     return;
   }
-  const value =
-    currentUnit === Units.MPH
-      ? metersPerSecond * MPS_TO_MPH
-      : metersPerSecond * MPS_TO_KPH;
-  const clamped = Math.min(Math.max(value, 0), 999);
-  const rounded = Math.round(clamped);
+
+  // Use shared logic for conversion
+  const rounded = convertSpeed(metersPerSecond, currentUnit);
   if (speedEl) speedEl.textContent = String(rounded);
 }
 

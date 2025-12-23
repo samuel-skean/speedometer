@@ -186,4 +186,51 @@ describe('Speedometer App', () => {
 
     expect(navigator.wakeLock.request).toHaveBeenCalledWith('screen');
   });
+
+  it('handles garbage geolocation data gracefully', () => {
+    let watchSuccessCallback: PositionCallback;
+    (navigator.geolocation.watchPosition as unknown as any).mockImplementation((success: PositionCallback) => {
+      watchSuccessCallback = success;
+      return 1;
+    });
+
+    init();
+
+    const garbageInputs = [
+        { speed: -50, label: 'negative speed' },
+        { speed: Infinity, label: 'infinity' },
+        { speed: NaN, label: 'NaN' }
+    ];
+
+    // biome-ignore lint/complexity/noForEach: Test loop
+    garbageInputs.forEach(input => {
+        const mockPosition = {
+          coords: {
+            speed: input.speed,
+            accuracy: 5,
+          },
+          timestamp: Date.now(),
+        };
+
+        // biome-ignore lint/style/noNonNullAssertion: Test setup
+        watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
+
+        // The UI should verify it's valid before rendering, so it shouldn't update to "0" or "Infinity" if filtered out by handlePosition.
+        // BUT wait, app.ts handlePosition checks: if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
+        // So for these invalid inputs, renderSpeed is NOT called.
+        // Thus the display should remain at the default (or previous value).
+
+        // Let's verify it remains dashes (since we haven't sent a valid speed yet).
+        expect(speedEl.innerHTML).toBe('———');
+    });
+
+    // Now send a valid speed to prove it still works
+     const validPosition = {
+        coords: { speed: 10, accuracy: 5 },
+        timestamp: Date.now()
+     };
+     // biome-ignore lint/style/noNonNullAssertion: Test setup
+     watchSuccessCallback!(validPosition as unknown as GeolocationPosition);
+     expect(speedEl.textContent).toBe('22');
+  });
 });
