@@ -73,7 +73,6 @@ async function handleWakeLock(): Promise<void> {
       wakeLock = null;
       keepScreenOnEl.indeterminate = false;
     }
-    localStorage.setItem("keepScreenOn", String(keepScreenOnEl.checked));
   } catch (err) {
     console.error("Wake Lock error:", err);
     keepScreenOnEl.checked = false;
@@ -131,12 +130,6 @@ function init(): void {
 
   // Screen wake lock
   keepScreenOnEl.addEventListener("change", handleWakeLock);
-  // Restore state from localStorage
-  const savedState = localStorage.getItem("keepScreenOn");
-  if (savedState) {
-    keepScreenOnEl.checked = savedState === "true";
-  }
-  handleWakeLock();
   // Re-acquire wake lock on visibility change
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
