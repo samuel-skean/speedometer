@@ -52,7 +52,7 @@ body {
 
 @media (orientation: landscape) {
   .speed {
-    font-size: min(32vw, 45vh);
+    font-size: min(32vw, 35vh);
   }
 }
 
