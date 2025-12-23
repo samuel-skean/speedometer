@@ -25,6 +25,20 @@ body {
   touch-action: none;
   box-sizing: border-box;
 }
+.warning {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: #ff9800; /* Orange for visibility */
+  color: #000;
+  text-align: center;
+  padding: 8px;
+  font-weight: bold;
+  font-size: 16px;
+  z-index: 100;
+  pointer-events: none;
+}
 .container {
   text-align: center;
   flex: 1;

@@ -15,6 +15,8 @@ const unitBtn = document.getElementById("unit")! as HTMLButtonElement;
 const keepScreenOnEl = document.getElementById(
   "keepScreenOn",
 )! as HTMLInputElement;
+// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
+const warningEl = document.getElementById("warning")! as HTMLDivElement;
 
 const Units = {
   MPH: "mph",
@@ -28,6 +30,7 @@ const MPS_TO_KPH = 3.6;
 let currentUnit: Unit =
   (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
+let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 
 function updateUnitUI(): void {
@@ -82,6 +85,9 @@ async function handleWakeLock(): Promise<void> {
 function handlePosition(pos: GeolocationPosition): void {
   console.log("handlePosition", pos);
   const { speed, accuracy } = pos.coords;
+
+  lastUpdateTimestamp = Date.now();
+  warningEl.hidden = true;
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
@@ -151,6 +157,13 @@ function init(): void {
       handleError,
       watchOptions,
     );
+
+    // Check for stale data every second
+    setInterval(() => {
+      if (lastUpdateTimestamp > 0 && Date.now() - lastUpdateTimestamp > 10000) {
+        warningEl.hidden = false;
+      }
+    }, 1000);
   } else {
     setStatus("Geolocation not supported on this device.");
   }
