@@ -4,7 +4,7 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
-import { Units, type Unit, convertSpeed } from "./logic";
+import { convertSpeed, type Unit, Units } from "./logic";
 
 // Define DOM elements
 let speedEl: HTMLDivElement;
@@ -107,9 +107,7 @@ export function init(): void {
   // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
   unitBtn = document.getElementById("unit")! as HTMLButtonElement;
   // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-  keepScreenOnEl = document.getElementById(
-    "keepScreenOn",
-  )! as HTMLInputElement;
+  keepScreenOnEl = document.getElementById("keepScreenOn")! as HTMLInputElement;
 
   // Initialize state from local storage or default
   currentUnit = (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
@@ -155,12 +153,13 @@ export function init(): void {
   }
 
   // Service Worker Registration
-  if ("serviceWorker" in navigator && !import.meta.env.DEV) { // Avoid SW in dev/test if desired, or keep as is
-      window.addEventListener("load", () => {
-        navigator.serviceWorker
-          .register("/service-worker.js")
-          .catch((e) => console.error("SW registration failed:", e));
-      });
+  if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+    // Avoid SW in dev/test if desired, or keep as is
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .catch((e) => console.error("SW registration failed:", e));
+    });
   }
 }
 

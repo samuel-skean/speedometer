@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fireEvent } from '@testing-library/dom';
-import { init } from '../src/app';
+import { fireEvent } from "@testing-library/dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { init } from "../src/app";
 
 // Mock types for Geolocation
 type MockWatchPosition = (
   success: PositionCallback,
   error?: PositionErrorCallback,
-  options?: PositionOptions
+  options?: PositionOptions,
 ) => number;
 
-describe('Speedometer App', () => {
+describe("Speedometer App", () => {
   let speedEl: HTMLElement;
   let statusEl: HTMLElement;
   let unitBtn: HTMLElement;
@@ -31,10 +31,12 @@ describe('Speedometer App', () => {
       </div>
     `;
 
-    speedEl = document.getElementById('speed')!;
-    statusEl = document.getElementById('status')!;
-    unitBtn = document.getElementById('unit')!;
-    keepScreenOnEl = document.getElementById('keepScreenOn')! as HTMLInputElement;
+    speedEl = document.getElementById("speed")!;
+    statusEl = document.getElementById("status")!;
+    unitBtn = document.getElementById("unit")!;
+    keepScreenOnEl = document.getElementById(
+      "keepScreenOn",
+    )! as HTMLInputElement;
 
     // Reset LocalStorage
     localStorage.clear();
@@ -44,13 +46,13 @@ describe('Speedometer App', () => {
       watchPosition: vi.fn(),
       clearWatch: vi.fn(),
     };
-    Object.defineProperty(navigator, 'geolocation', {
+    Object.defineProperty(navigator, "geolocation", {
       value: mockGeolocation,
       writable: true,
     });
 
     // Mock WakeLock
-    Object.defineProperty(navigator, 'wakeLock', {
+    Object.defineProperty(navigator, "wakeLock", {
       value: {
         request: vi.fn().mockResolvedValue({
           release: vi.fn(),
@@ -65,35 +67,37 @@ describe('Speedometer App', () => {
     vi.restoreAllMocks();
   });
 
-  it('initializes with default values', () => {
+  it("initializes with default values", () => {
     init();
     // &mdash; is parsed to the em dash character '—'
-    expect(speedEl.innerHTML).toBe('———');
-    expect(unitBtn.textContent).toBe('mph');
-    expect(statusEl.textContent).toBe('Requesting GPS...');
+    expect(speedEl.innerHTML).toBe("———");
+    expect(unitBtn.textContent).toBe("mph");
+    expect(statusEl.textContent).toBe("Requesting GPS...");
   });
 
-  it('toggles units when button is clicked', () => {
+  it("toggles units when button is clicked", () => {
     init();
-    expect(unitBtn.textContent).toBe('mph');
+    expect(unitBtn.textContent).toBe("mph");
 
     fireEvent.click(unitBtn);
-    expect(unitBtn.textContent).toBe('km/h');
-    expect(localStorage.getItem('speed-unit')).toBe('km/h');
+    expect(unitBtn.textContent).toBe("km/h");
+    expect(localStorage.getItem("speed-unit")).toBe("km/h");
 
     fireEvent.click(unitBtn);
-    expect(unitBtn.textContent).toBe('mph');
-    expect(localStorage.getItem('speed-unit')).toBe('mph');
+    expect(unitBtn.textContent).toBe("mph");
+    expect(localStorage.getItem("speed-unit")).toBe("mph");
   });
 
-  it('updates speed when geolocation provides data', () => {
+  it("updates speed when geolocation provides data", () => {
     let watchSuccessCallback: PositionCallback;
 
     // Capture the callback passed to watchPosition
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation((success: PositionCallback) => {
-      watchSuccessCallback = success;
-      return 1;
-    });
+    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
+      (success: PositionCallback) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
 
     init();
 
@@ -116,55 +120,59 @@ describe('Speedometer App', () => {
     // biome-ignore lint/style/noNonNullAssertion: Test setup guarantees this
     watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
 
-    expect(speedEl.textContent).toBe('22');
-    expect(statusEl.textContent).toBe('Accuracy: ±5m');
+    expect(speedEl.textContent).toBe("22");
+    expect(statusEl.textContent).toBe("Accuracy: ±5m");
 
     // Toggle unit to km/h
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
-    expect(speedEl.textContent).toBe('36');
+    expect(speedEl.textContent).toBe("36");
   });
 
-  it('handles invalid speed data', () => {
-      let watchSuccessCallback: PositionCallback;
-      (navigator.geolocation.watchPosition as unknown as any).mockImplementation((success: PositionCallback) => {
+  it("handles invalid speed data", () => {
+    let watchSuccessCallback: PositionCallback;
+    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
+      (success: PositionCallback) => {
         watchSuccessCallback = success;
         return 1;
-      });
+      },
+    );
 
-      init();
+    init();
 
-      // Speed is null (e.g. not moving/calculable by GPS yet)
-      const mockPosition = {
-        coords: {
-          speed: null,
-          accuracy: 10,
-        },
-        timestamp: Date.now(),
-      };
+    // Speed is null (e.g. not moving/calculable by GPS yet)
+    const mockPosition = {
+      coords: {
+        speed: null,
+        accuracy: 10,
+      },
+      timestamp: Date.now(),
+    };
 
-      // biome-ignore lint/style/noNonNullAssertion: Test setup guarantees this
-      watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
+    // biome-ignore lint/style/noNonNullAssertion: Test setup guarantees this
+    watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
 
-      // Should remain dashes if speed is null (no update logic triggered for null speed in app.ts)
-      // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
-      expect(speedEl.textContent).toMatch(/—+/);
-    });
+    // Should remain dashes if speed is null (no update logic triggered for null speed in app.ts)
+    // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
+    expect(speedEl.textContent).toMatch(/—+/);
+  });
 
-  it('displays error status when geolocation fails', () => {
+  it("displays error status when geolocation fails", () => {
     let watchErrorCallback: PositionErrorCallback;
 
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation((_: any, error: PositionErrorCallback) => {
-      watchErrorCallback = error;
-      return 1;
-    });
+    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
+      (_: any, error: PositionErrorCallback) => {
+        watchErrorCallback = error;
+        return 1;
+      },
+    );
 
     init();
 
     // The app code accesses constants on the error instance (e.g. err.PERMISSION_DENIED)
     const mockError = {
       code: 1,
-      message: 'User denied',
+      message: "User denied",
       PERMISSION_DENIED: 1,
       POSITION_UNAVAILABLE: 2,
       TIMEOUT: 3,
@@ -173,64 +181,66 @@ describe('Speedometer App', () => {
     // biome-ignore lint/style/noNonNullAssertion: Test setup
     watchErrorCallback!(mockError as unknown as GeolocationPositionError);
 
-    expect(statusEl.textContent).toContain('permission denied');
+    expect(statusEl.textContent).toContain("permission denied");
   });
 
-  it('requests wake lock when checkbox is checked', async () => {
+  it("requests wake lock when checkbox is checked", async () => {
     init();
 
     // Simulate click
     fireEvent.click(keepScreenOnEl); // changes checked state to true and fires change event
     // Wait for async handler
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(navigator.wakeLock.request).toHaveBeenCalledWith('screen');
+    expect(navigator.wakeLock.request).toHaveBeenCalledWith("screen");
   });
 
-  it('handles garbage geolocation data gracefully', () => {
+  it("handles garbage geolocation data gracefully", () => {
     let watchSuccessCallback: PositionCallback;
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation((success: PositionCallback) => {
-      watchSuccessCallback = success;
-      return 1;
-    });
+    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
+      (success: PositionCallback) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
 
     init();
 
     const garbageInputs = [
-        { speed: -50, label: 'negative speed' },
-        { speed: Infinity, label: 'infinity' },
-        { speed: NaN, label: 'NaN' }
+      { speed: -50, label: "negative speed" },
+      { speed: Infinity, label: "infinity" },
+      { speed: NaN, label: "NaN" },
     ];
 
     // biome-ignore lint/complexity/noForEach: Test loop
-    garbageInputs.forEach(input => {
-        const mockPosition = {
-          coords: {
-            speed: input.speed,
-            accuracy: 5,
-          },
-          timestamp: Date.now(),
-        };
+    garbageInputs.forEach((input) => {
+      const mockPosition = {
+        coords: {
+          speed: input.speed,
+          accuracy: 5,
+        },
+        timestamp: Date.now(),
+      };
 
-        // biome-ignore lint/style/noNonNullAssertion: Test setup
-        watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
+      // biome-ignore lint/style/noNonNullAssertion: Test setup
+      watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
 
-        // The UI should verify it's valid before rendering, so it shouldn't update to "0" or "Infinity" if filtered out by handlePosition.
-        // BUT wait, app.ts handlePosition checks: if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
-        // So for these invalid inputs, renderSpeed is NOT called.
-        // Thus the display should remain at the default (or previous value).
+      // The UI should verify it's valid before rendering, so it shouldn't update to "0" or "Infinity" if filtered out by handlePosition.
+      // BUT wait, app.ts handlePosition checks: if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
+      // So for these invalid inputs, renderSpeed is NOT called.
+      // Thus the display should remain at the default (or previous value).
 
-        // Let's verify it remains dashes (since we haven't sent a valid speed yet).
-        expect(speedEl.innerHTML).toBe('———');
+      // Let's verify it remains dashes (since we haven't sent a valid speed yet).
+      expect(speedEl.innerHTML).toBe("———");
     });
 
     // Now send a valid speed to prove it still works
-     const validPosition = {
-        coords: { speed: 10, accuracy: 5 },
-        timestamp: Date.now()
-     };
-     // biome-ignore lint/style/noNonNullAssertion: Test setup
-     watchSuccessCallback!(validPosition as unknown as GeolocationPosition);
-     expect(speedEl.textContent).toBe('22');
+    const validPosition = {
+      coords: { speed: 10, accuracy: 5 },
+      timestamp: Date.now(),
+    };
+    // biome-ignore lint/style/noNonNullAssertion: Test setup
+    watchSuccessCallback!(validPosition as unknown as GeolocationPosition);
+    expect(speedEl.textContent).toBe("22");
   });
 });
