@@ -52,7 +52,7 @@ body {
 
 @media (orientation: landscape) {
   .speed {
-    font-size: min(32vw, 45vh);
+    font-size: min(32vw, 35vh);
   }
 }
 
@@ -115,8 +115,23 @@ button.unit:active {
   opacity: 0.7;
   text-align: left;
   pointer-events: auto;
+  position: relative;
+  z-index: 10;
+}
+
+.bottom-left-controls label {
+  position: relative;
+  z-index: 1;
 }
 
 .bottom-left-controls input {
-  margin-left: 8px;
+  margin-left: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+@media (orientation: landscape) {
+  .toggle-break {
+    display: none;
+  }
 }
