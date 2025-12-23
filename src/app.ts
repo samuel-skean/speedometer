@@ -86,13 +86,13 @@ function handlePosition(pos: GeolocationPosition): void {
   console.log("handlePosition", pos);
   const { speed, accuracy } = pos.coords;
 
-  lastUpdateTimestamp = Date.now();
-  warningEl.hidden = true;
-
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
     lastSpeedMs = speed;
     renderSpeed(speed);
+
+    lastUpdateTimestamp = Date.now();
+    warningEl.hidden = true;
   }
 
   // Status/accuracy
