@@ -111,7 +111,7 @@ button.unit:active {
 .bottom-left-controls {
   display: flex;
   align-items: center;
-  font-size: 14px;
+  font-size: 18px;
   opacity: 0.7;
   text-align: left;
   pointer-events: auto;
@@ -119,4 +119,10 @@ button.unit:active {
 
 .bottom-left-controls input {
   margin-left: 8px;
+}
+
+@media (orientation: landscape) {
+  .toggle-break {
+    display: none;
+  }
 }
