@@ -72,7 +72,9 @@ function handlePosition(pos: GeolocationPosition): void {
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
     lastSpeedMs = speed;
     renderSpeed(speed);
-    lastUpdateTimestamp = Date.now();
+    // Disable updating timestamp to let the stale warning timer grow indefinitely
+    // lastUpdateTimestamp = Date.now();
+
     // Do not hide warningEl to ensure it is always visible
     // if (warningEl) warningEl.hidden = true;
   }
