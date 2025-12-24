@@ -9,7 +9,7 @@ body {
   -ms-overflow-style: none;
 }
 html {
-  background: light-dark(#f0f0f0, #111);
+  background: light-dark(#f0f0f0, #000);
 }
 body {
   margin: 0;
@@ -21,7 +21,7 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  background: light-dark(#f0f0f0, #111);
+  background: light-dark(#f0f0f0, #000);
   color: light-dark(#111, #eee);
   display: flex;
   flex-direction: column;
