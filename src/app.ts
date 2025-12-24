@@ -28,7 +28,7 @@ function renderSpeed(metersPerSecond: number): void {
   // Check validity
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
-    if (speedEl) speedEl.innerHTML = "&mdash;&mdash;&mdash;";
+    if (speedEl) speedEl.textContent = "0"; // Changed from dashes to 0
     return;
   }
 
@@ -69,9 +69,23 @@ function handlePosition(pos: GeolocationPosition): void {
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
-  if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    lastSpeedMs = speed;
-    renderSpeed(speed);
+  // Treat null/undefined speed as 0 if accuracy is valid (likely stationary)
+  let validSpeed = speed;
+  if (
+    (validSpeed === null || validSpeed === undefined) &&
+    typeof accuracy === "number" &&
+    Number.isFinite(accuracy)
+  ) {
+    validSpeed = 0;
+  }
+
+  if (
+    typeof validSpeed === "number" &&
+    Number.isFinite(validSpeed) &&
+    validSpeed >= 0
+  ) {
+    lastSpeedMs = validSpeed;
+    renderSpeed(validSpeed);
     lastUpdateTimestamp = Date.now();
     if (warningEl) warningEl.hidden = true;
   }
