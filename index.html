@@ -4,7 +4,8 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Speedometer</title>
-        <meta name="theme-color" content="#111111" />
+        <meta name="theme-color" content="#f0f0f0" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
 
         <!-- PWA manifest -->
         <link rel="manifest" href="manifest.webmanifest" />
@@ -17,7 +18,7 @@
 
         <style>
             :root {
-                color-scheme: dark light;
+                color-scheme: light dark;
             }
             html,
             body {
@@ -36,8 +37,8 @@
                     Helvetica,
                     Arial,
                     sans-serif;
-                background: #111;
-                color: #eee;
+                background: light-dark(#f0f0f0, #111);
+                color: light-dark(#111, #eee);
                 display: grid;
                 place-items: center;
                 touch-action: none;
@@ -82,9 +83,9 @@
             }
 
             button.unit {
-                background: #222;
-                color: #eee;
-                border: 1px solid #333;
+                background: light-dark(#fff, #222);
+                color: light-dark(#111, #eee);
+                border: 1px solid light-dark(#ccc, #333);
                 border-radius: 8px;
                 padding: 8px 12px;
                 font-size: 20px;
