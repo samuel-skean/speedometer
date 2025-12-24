@@ -8,6 +8,9 @@ body {
   overscroll-behavior: none;
   -ms-overflow-style: none;
 }
+html {
+  background: light-dark(#f0f0f0, #111);
+}
 body {
   margin: 0;
   font-family:
