@@ -12,21 +12,13 @@
  *   --out=<icons-dir>     Defaults to ../icons
  *   --sizes=192,512       Comma-separated list of sizes (px), defaults to 192,512
  */
-
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import minimist from "minimist";
 import sharp from "sharp";
-
-type CliOptions = {
-  src: string;
-  outDir: string;
-  sizes: number[];
-};
-
-function parseArgs(): CliOptions {
+function parseArgs() {
   const argv = minimist(process.argv.slice(2), {
     string: ["src", "out", "sizes"],
     default: {
@@ -41,28 +33,22 @@ function parseArgs(): CliOptions {
       sizes: "192,512",
     },
   });
-
-  const src = argv.src as string;
-  const outDir = argv.out as string;
-  const sizesArg = argv.sizes as string;
-
+  const src = argv.src;
+  const outDir = argv.out;
+  const sizesArg = argv.sizes;
   const sizes = sizesArg
     .split(",")
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isFinite(n) && n > 0);
-
+    .map((s: string) => Number(s.trim()))
+    .filter((n: number) => Number.isFinite(n) && n > 0);
   if (sizes.length === 0) {
     throw new Error("No valid sizes specified. Use --sizes=192,512");
   }
-
   return { src, outDir, sizes };
 }
-
 async function ensureDir(dir: string) {
   await fs.mkdir(dir, { recursive: true });
 }
-
-async function fileExists(p: string): Promise<boolean> {
+async function fileExists(p: string) {
   try {
     await fs.access(p);
     return true;
@@ -70,7 +56,6 @@ async function fileExists(p: string): Promise<boolean> {
     return false;
   }
 }
-
 async function renderPngFromSvg(
   svgPath: string,
   outPath: string,
@@ -80,12 +65,10 @@ async function renderPngFromSvg(
   if (!svgExists) {
     throw new Error(`Source SVG not found: ${svgPath}`);
   }
-
   // Render PNG with transparent background, fit within size x size.
   // We set density to improve rasterization quality from SVG.
   const density = Math.max(72, Math.floor(size)); // heuristic: at least 72, up to size
   const svgBuffer = await fs.readFile(svgPath);
-
   const image = sharp(svgBuffer, { density })
     .resize(size, size, {
       fit: "contain",
@@ -95,30 +78,23 @@ async function renderPngFromSvg(
       compressionLevel: 9,
       adaptiveFiltering: true,
     });
-
   const outBuffer = await image.toBuffer();
   await fs.writeFile(outPath, outBuffer);
 }
-
 async function main() {
   const { src, outDir, sizes } = parseArgs();
-
   console.log(`Rendering icons from: ${src}`);
   console.log(`Output directory:    ${outDir}`);
   console.log(`Sizes:               ${sizes.join(", ")}`);
-
   await ensureDir(outDir);
-
   for (const size of sizes) {
     const outName = `icon-${size}.png`;
     const outPath = path.resolve(outDir, outName);
     console.log(`-> Rendering ${outName} (${size}x${size})`);
     await renderPngFromSvg(src, outPath, size);
   }
-
   console.log("Done.");
 }
-
 main().catch((err) => {
   console.error("Error rendering icons:", err?.message || err);
   process.exit(1);
