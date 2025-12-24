@@ -28,7 +28,7 @@ function renderSpeed(metersPerSecond: number): void {
   // Check validity
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
-    if (speedEl) speedEl.textContent = "0"; // Changed from dashes to 0
+    if (speedEl) speedEl.innerHTML = "&mdash;&mdash;&mdash;";
     return;
   }
 
@@ -69,23 +69,9 @@ function handlePosition(pos: GeolocationPosition): void {
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
-  // Treat null/undefined speed as 0 if accuracy is valid (likely stationary)
-  let validSpeed = speed;
-  if (
-    (validSpeed === null || validSpeed === undefined) &&
-    typeof accuracy === "number" &&
-    Number.isFinite(accuracy)
-  ) {
-    validSpeed = 0;
-  }
-
-  if (
-    typeof validSpeed === "number" &&
-    Number.isFinite(validSpeed) &&
-    validSpeed >= 0
-  ) {
-    lastSpeedMs = validSpeed;
-    renderSpeed(validSpeed);
+  if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
+    lastSpeedMs = speed;
+    renderSpeed(speed);
     lastUpdateTimestamp = Date.now();
     if (warningEl) warningEl.hidden = true;
   }
@@ -171,7 +157,7 @@ export function init(): void {
   const watchOptions: PositionOptions = {
     enableHighAccuracy: true,
     maximumAge: 1000, // accept 1s old cached positions
-    timeout: 10000, // 10s per fix
+    timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
   };
 
   if ("geolocation" in navigator) {
