@@ -73,6 +73,7 @@ body {
 
 .speed[data-placeholder-visible="true"]::before {
   opacity: 1;
+  color: light-dark(#111, #eee);
 }
 
 @media (orientation: landscape) {
