@@ -1,6 +1,6 @@
 import { fireEvent } from "@testing-library/dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { PLACEHOLDER, init, resetState } from "../src/app";
+import { init, PLACEHOLDER, resetState } from "../src/app";
 
 describe("Speedometer App", () => {
   let speedEl: HTMLElement;
