@@ -191,6 +191,7 @@ describe("Speedometer App", () => {
     const watchPositionSpy = vi
       .spyOn(navigator.geolocation, "watchPosition")
       .mockImplementation((_, error) => {
+        if (error === null) throw new Error(`error was null`);
         watchErrorCallback = error;
         return 1;
       });
