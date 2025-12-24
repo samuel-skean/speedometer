@@ -135,3 +135,16 @@ button.unit:active {
     display: none;
   }
 }
+.warning {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ff9800;
+  color: #000;
+  text-align: center;
+  padding: 10px;
+  font-weight: bold;
+  z-index: 1000;
+  font-size: 1.2em;
+}
