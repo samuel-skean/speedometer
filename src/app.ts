@@ -19,6 +19,15 @@ let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 
+export const PLACEHOLDER = "———";
+
+function showPlaceholder(): void {
+  if (speedEl) {
+    speedEl.dataset.placeholderVisible = "true";
+    speedEl.textContent = PLACEHOLDER;
+  }
+}
+
 function updateUnitUI(): void {
   if (unitBtn) unitBtn.textContent = currentUnit;
 }
@@ -28,13 +37,16 @@ function renderSpeed(metersPerSecond: number): void {
   // Check validity
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
-    if (speedEl) speedEl.innerHTML = "&mdash;&mdash;&mdash;";
+    showPlaceholder();
     return;
   }
 
   // Use shared logic for conversion
   const rounded = convertSpeed(metersPerSecond, currentUnit);
-  if (speedEl) speedEl.textContent = String(rounded);
+  if (speedEl) {
+    speedEl.dataset.placeholderVisible = "false";
+    speedEl.textContent = String(rounded);
+  }
 }
 
 function setStatus(text: string): void {
@@ -110,6 +122,8 @@ export function init(): void {
   const speedElNullable = document.getElementById("speed");
   if (!speedElNullable) throw new Error("Speed element not found");
   speedEl = speedElNullable as HTMLDivElement;
+  speedEl.dataset.placeholder = PLACEHOLDER;
+  showPlaceholder();
 
   const statusElNullable = document.getElementById("status");
   if (!statusElNullable) throw new Error("Status element not found");
