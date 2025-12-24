@@ -62,7 +62,7 @@ body {
   align-items: center;
   justify-content: center;
   white-space: pre;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   pointer-events: none;
   opacity: 0;
 }
