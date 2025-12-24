@@ -169,6 +169,9 @@ export function init(): void {
   // Initialize timestamp to now so the counter starts from 0 instead of waiting for first fix
   lastUpdateTimestamp = Date.now();
 
+  // Simulated duration accumulator
+  let simulatedDuration = 0;
+
   if ("geolocation" in navigator) {
     setStatus("Requesting GPS...");
     navigator.geolocation.watchPosition(
@@ -179,14 +182,14 @@ export function init(): void {
 
     // Update timer every second
     setInterval(() => {
-      // Calculate diff. If lastUpdateTimestamp is 0 (shouldn't be due to init above), use Date.now() effectively 0 diff.
-      const diff = Date.now() - (lastUpdateTimestamp || Date.now());
+      // Simulate rapid time passing: add 1 hour (3600000ms) per second
+      simulatedDuration += 3600000;
 
       if (warningEl) {
         // Always ensure it's visible
         warningEl.hidden = false;
 
-        const { value, unit, maxDigits } = formatDuration(diff);
+        const { value, unit, maxDigits } = formatDuration(simulatedDuration);
 
         // Singular/Plural
         const unitLabel = value === 1 ? unit : `${unit}s`;
