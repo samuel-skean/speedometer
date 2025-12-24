@@ -1,5 +1,5 @@
 :root {
-  color-scheme: dark light;
+  color-scheme: light dark;
 }
 html,
 body {
@@ -7,6 +7,9 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   -ms-overflow-style: none;
+}
+html {
+  background: light-dark(#f0f0f0, #000);
 }
 body {
   margin: 0;
@@ -18,8 +21,8 @@ body {
     Helvetica,
     Arial,
     sans-serif;
-  background: #111;
-  color: #eee;
+  background: light-dark(#f0f0f0, #000);
+  color: light-dark(#111, #eee);
   display: flex;
   flex-direction: column;
   touch-action: none;
@@ -94,9 +97,9 @@ body {
 }
 
 button.unit {
-  background: #222;
-  color: #eee;
-  border: 1px solid #333;
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee);
+  border: 1px solid light-dark(#ccc, #333);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 20px;

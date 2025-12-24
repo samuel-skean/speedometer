@@ -11,7 +11,17 @@
     <link rel="icon" href="./icons/icon-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="description" content="A simple, accurate GPS speedometer." />
-    <meta name="theme-color" content="#242424" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#f0f0f0"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#000000"
+    />
   </head>
   <body>
     <div id="warning" class="warning" hidden>Speed data is old</div>
