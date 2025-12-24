@@ -18,6 +18,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import minimist from "minimist";
 import sharp from "sharp";
+
 function parseArgs() {
   const argv = minimist(process.argv.slice(2), {
     string: ["src", "out", "sizes"],
