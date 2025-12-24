@@ -2,13 +2,6 @@ import { fireEvent } from "@testing-library/dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { init, resetState } from "../src/app";
 
-// Mock types for Geolocation
-type MockWatchPosition = (
-  success: PositionCallback,
-  error?: PositionErrorCallback,
-  options?: PositionOptions,
-) => number;
-
 describe("Speedometer App", () => {
   let speedEl: HTMLElement;
   let statusEl: HTMLElement;
@@ -33,13 +26,26 @@ describe("Speedometer App", () => {
       </div>
     `;
 
-    speedEl = document.getElementById("speed")!;
-    statusEl = document.getElementById("status")!;
-    unitBtn = document.getElementById("unit")!;
-    keepScreenOnEl = document.getElementById(
-      "keepScreenOn",
-    )! as HTMLInputElement;
-    warningEl = document.getElementById("warning")!;
+    const speedElNullable = document.getElementById("speed");
+    if (!speedElNullable) throw new Error("Speed element not found");
+    speedEl = speedElNullable;
+
+    const statusElNullable = document.getElementById("status");
+    if (!statusElNullable) throw new Error("Status element not found");
+    statusEl = statusElNullable;
+
+    const unitBtnNullable = document.getElementById("unit");
+    if (!unitBtnNullable) throw new Error("Unit button not found");
+    unitBtn = unitBtnNullable;
+
+    const keepScreenOnElNullable = document.getElementById("keepScreenOn");
+    if (!keepScreenOnElNullable)
+      throw new Error("Keep screen on element not found");
+    keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
+
+    const warningElNullable = document.getElementById("warning");
+    if (!warningElNullable) throw new Error("Warning element not found");
+    warningEl = warningElNullable;
 
     // Reset LocalStorage
     localStorage.clear();
@@ -94,15 +100,15 @@ describe("Speedometer App", () => {
   });
 
   it("updates speed when geolocation provides data", () => {
-    let watchSuccessCallback: PositionCallback;
+    let watchSuccessCallback: PositionCallback | undefined;
 
     // Capture the callback passed to watchPosition
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
-      (success: PositionCallback) => {
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
         watchSuccessCallback = success;
         return 1;
-      },
-    );
+      });
 
     init();
 
@@ -122,8 +128,11 @@ describe("Speedometer App", () => {
     };
 
     // Trigger the callback
-    // biome-ignore lint/style/noNonNullAssertion: Test setup guarantees this
-    watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
 
     expect(speedEl.textContent).toBe("22");
     expect(statusEl.textContent).toBe("Accuracy: ±5m");
@@ -133,16 +142,18 @@ describe("Speedometer App", () => {
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
     expect(speedEl.textContent).toBe("36");
+
+    watchPositionSpy.mockRestore();
   });
 
   it("handles invalid speed data", () => {
-    let watchSuccessCallback: PositionCallback;
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
-      (success: PositionCallback) => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
         watchSuccessCallback = success;
         return 1;
-      },
-    );
+      });
 
     init();
 
@@ -155,23 +166,28 @@ describe("Speedometer App", () => {
       timestamp: Date.now(),
     };
 
-    // biome-ignore lint/style/noNonNullAssertion: Test setup guarantees this
-    watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
 
     // Should remain dashes if speed is null (no update logic triggered for null speed in app.ts)
     // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
     expect(speedEl.textContent).toMatch(/—+/);
+
+    watchPositionSpy.mockRestore();
   });
 
   it("displays error status when geolocation fails", () => {
-    let watchErrorCallback: PositionErrorCallback;
+    let watchErrorCallback: PositionErrorCallback | undefined;
 
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
-      (_: any, error: PositionErrorCallback) => {
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((_, error) => {
         watchErrorCallback = error;
         return 1;
-      },
-    );
+      });
 
     init();
 
@@ -184,10 +200,15 @@ describe("Speedometer App", () => {
       TIMEOUT: 3,
     };
 
-    // biome-ignore lint/style/noNonNullAssertion: Test setup
-    watchErrorCallback!(mockError as unknown as GeolocationPositionError);
+    if (watchErrorCallback) {
+      watchErrorCallback(mockError as unknown as GeolocationPositionError);
+    } else {
+      throw new Error("watchErrorCallback was not set");
+    }
 
     expect(statusEl.textContent).toContain("permission denied");
+
+    watchPositionSpy.mockRestore();
   });
 
   it("requests wake lock when checkbox is checked", async () => {
@@ -202,13 +223,13 @@ describe("Speedometer App", () => {
   });
 
   it("handles garbage geolocation data gracefully", () => {
-    let watchSuccessCallback: PositionCallback;
-    (navigator.geolocation.watchPosition as unknown as any).mockImplementation(
-      (success: PositionCallback) => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
         watchSuccessCallback = success;
         return 1;
-      },
-    );
+      });
 
     init();
 
@@ -218,7 +239,6 @@ describe("Speedometer App", () => {
       { speed: NaN, label: "NaN" },
     ];
 
-    // biome-ignore lint/complexity/noForEach: Test loop
     garbageInputs.forEach((input) => {
       const mockPosition = {
         coords: {
@@ -228,8 +248,11 @@ describe("Speedometer App", () => {
         timestamp: Date.now(),
       };
 
-      // biome-ignore lint/style/noNonNullAssertion: Test setup
-      watchSuccessCallback!(mockPosition as unknown as GeolocationPosition);
+      if (watchSuccessCallback) {
+        watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      } else {
+        throw new Error("watchSuccessCallback was not set");
+      }
 
       // The UI should verify it's valid before rendering, so it shouldn't update to "0" or "Infinity" if filtered out by handlePosition.
       // BUT wait, app.ts handlePosition checks: if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
@@ -245,8 +268,13 @@ describe("Speedometer App", () => {
       coords: { speed: 10, accuracy: 5 },
       timestamp: Date.now(),
     };
-    // biome-ignore lint/style/noNonNullAssertion: Test setup
-    watchSuccessCallback!(validPosition as unknown as GeolocationPosition);
+    if (watchSuccessCallback) {
+      watchSuccessCallback(validPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
     expect(speedEl.textContent).toBe("22");
+
+    watchPositionSpy.mockRestore();
   });
 });

@@ -60,14 +60,12 @@ async function handleWakeLock(): Promise<void> {
       wakeLock = null;
       if (keepScreenOnEl) keepScreenOnEl.indeterminate = false;
     }
-  } catch (err) {
-    console.error("Wake Lock error:", err);
+  } catch (_err) {
     if (keepScreenOnEl) keepScreenOnEl.checked = false;
   }
 }
 
 function handlePosition(pos: GeolocationPosition): void {
-  console.log("handlePosition", pos);
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
@@ -87,7 +85,6 @@ function handlePosition(pos: GeolocationPosition): void {
 }
 
 function handleError(err: GeolocationPositionError): void {
-  console.error("Geolocation error:", err);
   switch (err.code) {
     case err.PERMISSION_DENIED:
       setStatus("Location permission denied. Enable it to see speed.");
@@ -110,16 +107,26 @@ export function resetState(): void {
 }
 
 export function init(): void {
-  // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-  speedEl = document.getElementById("speed")! as HTMLDivElement;
-  // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-  statusEl = document.getElementById("status")! as HTMLDivElement;
-  // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-  unitBtn = document.getElementById("unit")! as HTMLButtonElement;
-  // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-  keepScreenOnEl = document.getElementById("keepScreenOn")! as HTMLInputElement;
-  // biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-  warningEl = document.getElementById("warning")! as HTMLDivElement;
+  const speedElNullable = document.getElementById("speed");
+  if (!speedElNullable) throw new Error("Speed element not found");
+  speedEl = speedElNullable as HTMLDivElement;
+
+  const statusElNullable = document.getElementById("status");
+  if (!statusElNullable) throw new Error("Status element not found");
+  statusEl = statusElNullable as HTMLDivElement;
+
+  const unitBtnNullable = document.getElementById("unit");
+  if (!unitBtnNullable) throw new Error("Unit button not found");
+  unitBtn = unitBtnNullable as HTMLButtonElement;
+
+  const keepScreenOnElNullable = document.getElementById("keepScreenOn");
+  if (!keepScreenOnElNullable)
+    throw new Error("Keep screen on element not found");
+  keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
+
+  const warningElNullable = document.getElementById("warning");
+  if (!warningElNullable) throw new Error("Warning element not found");
+  warningEl = warningElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
   currentUnit = (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
