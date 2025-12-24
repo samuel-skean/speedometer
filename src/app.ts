@@ -72,11 +72,8 @@ function handlePosition(pos: GeolocationPosition): void {
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
     lastSpeedMs = speed;
     renderSpeed(speed);
-    // Disable updating timestamp to let the stale warning timer grow indefinitely
-    // lastUpdateTimestamp = Date.now();
-
-    // Do not hide warningEl to ensure it is always visible
-    // if (warningEl) warningEl.hidden = true;
+    lastUpdateTimestamp = Date.now();
+    if (warningEl) warningEl.hidden = true;
   }
 
   // Status/accuracy
@@ -131,9 +128,6 @@ export function init(): void {
   if (!warningElNullable) throw new Error("Warning element not found");
   warningEl = warningElNullable as HTMLDivElement;
 
-  // Make warning visible immediately
-  warningEl.hidden = false;
-
   // Initialize state from local storage or default
   currentUnit = (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
 
@@ -166,12 +160,6 @@ export function init(): void {
     timeout: 10000, // 10s per fix
   };
 
-  // Initialize timestamp to now so the counter starts from 0 instead of waiting for first fix
-  lastUpdateTimestamp = Date.now();
-
-  // Simulated duration accumulator
-  let simulatedDuration = 0;
-
   if ("geolocation" in navigator) {
     setStatus("Requesting GPS...");
     navigator.geolocation.watchPosition(
@@ -180,22 +168,21 @@ export function init(): void {
       watchOptions,
     );
 
-    // Update timer every second
+    // Check for stale data every second
     setInterval(() => {
-      // Simulate rapid time passing: add 1 hour (3600000ms) per second
-      simulatedDuration += 3600000;
+      const diff = Date.now() - lastUpdateTimestamp;
+      if (lastUpdateTimestamp > 0 && diff > 10000) {
+        if (warningEl) {
+          warningEl.hidden = false;
 
-      if (warningEl) {
-        // Always ensure it's visible
-        warningEl.hidden = false;
+          const { value, unit, maxDigits } = formatDuration(diff);
 
-        const { value, unit, maxDigits } = formatDuration(simulatedDuration);
+          // Singular/Plural
+          const unitLabel = value === 1 ? unit : `${unit}s`;
 
-        // Singular/Plural
-        const unitLabel = value === 1 ? unit : `${unit}s`;
-
-        // Construct HTML with reserved width for digits
-        warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
+          // Construct HTML with reserved width for digits
+          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
+        }
       }
     }, 1000);
   } else {
