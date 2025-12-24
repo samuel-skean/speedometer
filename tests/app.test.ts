@@ -1,0 +1,280 @@
+import { fireEvent } from "@testing-library/dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { init, resetState } from "../src/app";
+
+describe("Speedometer App", () => {
+  let speedEl: HTMLElement;
+  let statusEl: HTMLElement;
+  let unitBtn: HTMLElement;
+  let keepScreenOnEl: HTMLInputElement;
+  let warningEl: HTMLElement;
+
+  beforeEach(() => {
+    // Reset DOM
+    document.body.innerHTML = `
+      <div id="warning" class="warning" hidden>Speed data is old</div>
+      <div class="container">
+          <div id="speed" class="speed">&mdash;&mdash;&mdash;</div>
+          <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
+      </div>
+      <div class="bottom-bar">
+          <div class="bottom-left-controls">
+              <label for="keepScreenOn">Stay<br>Awake</label>
+              <input type="checkbox" id="keepScreenOn" />
+          </div>
+          <div id="status" class="status">Waiting for GPS...</div>
+      </div>
+    `;
+
+    const speedElNullable = document.getElementById("speed");
+    if (!speedElNullable) throw new Error("Speed element not found");
+    speedEl = speedElNullable;
+
+    const statusElNullable = document.getElementById("status");
+    if (!statusElNullable) throw new Error("Status element not found");
+    statusEl = statusElNullable;
+
+    const unitBtnNullable = document.getElementById("unit");
+    if (!unitBtnNullable) throw new Error("Unit button not found");
+    unitBtn = unitBtnNullable;
+
+    const keepScreenOnElNullable = document.getElementById("keepScreenOn");
+    if (!keepScreenOnElNullable)
+      throw new Error("Keep screen on element not found");
+    keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
+
+    const warningElNullable = document.getElementById("warning");
+    if (!warningElNullable) throw new Error("Warning element not found");
+    warningEl = warningElNullable;
+
+    // Reset LocalStorage
+    localStorage.clear();
+
+    // Mock Geolocation
+    const mockGeolocation = {
+      watchPosition: vi.fn(),
+      clearWatch: vi.fn(),
+    };
+    Object.defineProperty(navigator, "geolocation", {
+      value: mockGeolocation,
+      writable: true,
+    });
+
+    // Mock WakeLock
+    Object.defineProperty(navigator, "wakeLock", {
+      value: {
+        request: vi.fn().mockResolvedValue({
+          release: vi.fn(),
+          addEventListener: vi.fn(),
+        }),
+      },
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    resetState();
+  });
+
+  it("initializes with default values", () => {
+    init();
+    // &mdash; is parsed to the em dash character '—'
+    expect(speedEl.innerHTML).toBe("———");
+    expect(unitBtn.textContent).toBe("mph");
+    expect(statusEl.textContent).toBe("Requesting GPS...");
+    expect(warningEl.hidden).toBe(true);
+  });
+
+  it("toggles units when button is clicked", () => {
+    init();
+    expect(unitBtn.textContent).toBe("mph");
+
+    fireEvent.click(unitBtn);
+    expect(unitBtn.textContent).toBe("km/h");
+    expect(localStorage.getItem("speed-unit")).toBe("km/h");
+
+    fireEvent.click(unitBtn);
+    expect(unitBtn.textContent).toBe("mph");
+    expect(localStorage.getItem("speed-unit")).toBe("mph");
+  });
+
+  it("updates speed when geolocation provides data", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    // Capture the callback passed to watchPosition
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    // Simulate position update: 10 m/s
+    // 10 m/s * 2.23694 = 22.3694 mph -> rounded to 22
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+        latitude: 0,
+        longitude: 0,
+        altitude: null,
+        altitudeAccuracy: null,
+        heading: null,
+      },
+      timestamp: Date.now(),
+    };
+
+    // Trigger the callback
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    expect(speedEl.textContent).toBe("22");
+    expect(statusEl.textContent).toBe("Accuracy: ±5m");
+    expect(warningEl.hidden).toBe(true);
+
+    // Toggle unit to km/h
+    // 10 m/s * 3.6 = 36 km/h
+    fireEvent.click(unitBtn);
+    expect(speedEl.textContent).toBe("36");
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("handles invalid speed data", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    // Speed is null (e.g. not moving/calculable by GPS yet)
+    const mockPosition = {
+      coords: {
+        speed: null,
+        accuracy: 10,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    // Should remain dashes if speed is null (no update logic triggered for null speed in app.ts)
+    // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
+    expect(speedEl.textContent).toMatch(/—+/);
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("displays error status when geolocation fails", () => {
+    let watchErrorCallback: PositionErrorCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((_, error) => {
+        watchErrorCallback = error;
+        return 1;
+      });
+
+    init();
+
+    // The app code accesses constants on the error instance (e.g. err.PERMISSION_DENIED)
+    const mockError = {
+      code: 1,
+      message: "User denied",
+      PERMISSION_DENIED: 1,
+      POSITION_UNAVAILABLE: 2,
+      TIMEOUT: 3,
+    };
+
+    if (watchErrorCallback) {
+      watchErrorCallback(mockError as unknown as GeolocationPositionError);
+    } else {
+      throw new Error("watchErrorCallback was not set");
+    }
+
+    expect(statusEl.textContent).toContain("permission denied");
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("requests wake lock when checkbox is checked", async () => {
+    init();
+
+    // Simulate click
+    fireEvent.click(keepScreenOnEl); // changes checked state to true and fires change event
+    // Wait for async handler
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(navigator.wakeLock.request).toHaveBeenCalledWith("screen");
+  });
+
+  it("handles garbage geolocation data gracefully", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    const garbageInputs = [
+      { speed: -50, label: "negative speed" },
+      { speed: Infinity, label: "infinity" },
+      { speed: NaN, label: "NaN" },
+    ];
+
+    garbageInputs.forEach((input) => {
+      const mockPosition = {
+        coords: {
+          speed: input.speed,
+          accuracy: 5,
+        },
+        timestamp: Date.now(),
+      };
+
+      if (watchSuccessCallback) {
+        watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      } else {
+        throw new Error("watchSuccessCallback was not set");
+      }
+
+      // The UI should verify it's valid before rendering, so it shouldn't update to "0" or "Infinity" if filtered out by handlePosition.
+      // BUT wait, app.ts handlePosition checks: if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
+      // So for these invalid inputs, renderSpeed is NOT called.
+      // Thus the display should remain at the default (or previous value).
+
+      // Let's verify it remains dashes (since we haven't sent a valid speed yet).
+      expect(speedEl.innerHTML).toBe("———");
+    });
+
+    // Now send a valid speed to prove it still works
+    const validPosition = {
+      coords: { speed: 10, accuracy: 5 },
+      timestamp: Date.now(),
+    };
+    if (watchSuccessCallback) {
+      watchSuccessCallback(validPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+    expect(speedEl.textContent).toBe("22");
+
+    watchPositionSpy.mockRestore();
+  });
+});

@@ -4,59 +4,46 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
+import { convertSpeed, type Unit, Units } from "./logic";
 
-// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-const speedEl = document.getElementById("speed")! as HTMLDivElement;
-// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-const statusEl = document.getElementById("status")! as HTMLDivElement;
-// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-const unitBtn = document.getElementById("unit")! as HTMLButtonElement;
-// biome-ignore lint/style/noNonNullAssertion: This element is in index.html.
-const keepScreenOnEl = document.getElementById(
-  "keepScreenOn",
-)! as HTMLInputElement;
+// Define DOM elements
+let speedEl: HTMLDivElement;
+let statusEl: HTMLDivElement;
+let unitBtn: HTMLButtonElement;
+let keepScreenOnEl: HTMLInputElement;
+let warningEl: HTMLDivElement;
 
-const Units = {
-  MPH: "mph",
-  KPH: "km/h",
-} as const;
-type Unit = (typeof Units)[keyof typeof Units];
-
-const MPS_TO_MPH = 2.2369362920544;
-const MPS_TO_KPH = 3.6;
-
-let currentUnit: Unit =
-  (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
+// Mutable state
+let currentUnit: Unit;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
+let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 
 function updateUnitUI(): void {
-  unitBtn.textContent = currentUnit;
+  if (unitBtn) unitBtn.textContent = currentUnit;
 }
 
 // Render the speed (expects m/s)
 function renderSpeed(metersPerSecond: number): void {
+  // Check validity
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
-    speedEl.innerHTML = "&mdash;&mdash;&mdash;";
+    if (speedEl) speedEl.innerHTML = "&mdash;&mdash;&mdash;";
     return;
   }
-  const value =
-    currentUnit === Units.MPH
-      ? metersPerSecond * MPS_TO_MPH
-      : metersPerSecond * MPS_TO_KPH;
-  const clamped = Math.min(Math.max(value, 0), 999);
-  const rounded = Math.round(clamped);
-  speedEl.textContent = String(rounded);
+
+  // Use shared logic for conversion
+  const rounded = convertSpeed(metersPerSecond, currentUnit);
+  if (speedEl) speedEl.textContent = String(rounded);
 }
 
 function setStatus(text: string): void {
-  statusEl.textContent = text;
+  if (statusEl) statusEl.textContent = text;
 }
 
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
-    keepScreenOnEl.disabled = true;
+    if (keepScreenOnEl) keepScreenOnEl.disabled = true;
     return;
   }
 
@@ -66,27 +53,27 @@ async function handleWakeLock(): Promise<void> {
       keepScreenOnEl.indeterminate = false;
       wakeLock.addEventListener("release", () => {
         // tristate checkbox: indeterminate when released by system
-        keepScreenOnEl.indeterminate = true;
+        if (keepScreenOnEl) keepScreenOnEl.indeterminate = true;
       });
     } else {
       wakeLock?.release();
       wakeLock = null;
-      keepScreenOnEl.indeterminate = false;
+      if (keepScreenOnEl) keepScreenOnEl.indeterminate = false;
     }
-  } catch (err) {
-    console.error("Wake Lock error:", err);
-    keepScreenOnEl.checked = false;
+  } catch (_err) {
+    if (keepScreenOnEl) keepScreenOnEl.checked = false;
   }
 }
 
 function handlePosition(pos: GeolocationPosition): void {
-  console.log("handlePosition", pos);
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
     lastSpeedMs = speed;
     renderSpeed(speed);
+    lastUpdateTimestamp = Date.now();
+    if (warningEl) warningEl.hidden = true;
   }
 
   // Status/accuracy
@@ -98,7 +85,6 @@ function handlePosition(pos: GeolocationPosition): void {
 }
 
 function handleError(err: GeolocationPositionError): void {
-  console.error("Geolocation error:", err);
   switch (err.code) {
     case err.PERMISSION_DENIED:
       setStatus("Location permission denied. Enable it to see speed.");
@@ -114,7 +100,37 @@ function handleError(err: GeolocationPositionError): void {
   }
 }
 
-function init(): void {
+export function resetState(): void {
+  lastSpeedMs = null;
+  lastUpdateTimestamp = 0;
+  wakeLock = null;
+}
+
+export function init(): void {
+  const speedElNullable = document.getElementById("speed");
+  if (!speedElNullable) throw new Error("Speed element not found");
+  speedEl = speedElNullable as HTMLDivElement;
+
+  const statusElNullable = document.getElementById("status");
+  if (!statusElNullable) throw new Error("Status element not found");
+  statusEl = statusElNullable as HTMLDivElement;
+
+  const unitBtnNullable = document.getElementById("unit");
+  if (!unitBtnNullable) throw new Error("Unit button not found");
+  unitBtn = unitBtnNullable as HTMLButtonElement;
+
+  const keepScreenOnElNullable = document.getElementById("keepScreenOn");
+  if (!keepScreenOnElNullable)
+    throw new Error("Keep screen on element not found");
+  keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
+
+  const warningElNullable = document.getElementById("warning");
+  if (!warningElNullable) throw new Error("Warning element not found");
+  warningEl = warningElNullable as HTMLDivElement;
+
+  // Initialize state from local storage or default
+  currentUnit = (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
+
   updateUnitUI();
 
   // Unit toggle
@@ -151,23 +167,36 @@ function init(): void {
       handleError,
       watchOptions,
     );
+
+    // Check for stale data every second
+    setInterval(() => {
+      if (lastUpdateTimestamp > 0 && Date.now() - lastUpdateTimestamp > 10000) {
+        if (warningEl) warningEl.hidden = false;
+      }
+    }, 1000);
   } else {
     setStatus("Geolocation not supported on this device.");
   }
+
+  // Service Worker Registration
+  if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+    // Avoid SW in dev/test if desired, or keep as is
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .catch((e) => console.error("SW registration failed:", e));
+    });
+  }
 }
 
-// Run immediately in module scope once DOM is ready enough for our elements
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", init, { once: true });
-} else {
-  init();
-}
+// Check if running in a test environment
+const isTest = import.meta.env.TEST;
 
-// Register service worker from the app bundle so it’s included in production builds
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .catch((e) => console.error("SW registration failed:", e));
-  });
+if (!isTest) {
+  // Run immediately in module scope once DOM is ready enough for our elements
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
 }
