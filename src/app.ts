@@ -73,7 +73,8 @@ function handlePosition(pos: GeolocationPosition): void {
     lastSpeedMs = speed;
     renderSpeed(speed);
     lastUpdateTimestamp = Date.now();
-    if (warningEl) warningEl.hidden = true;
+    // Do not hide warningEl to ensure it is always visible
+    // if (warningEl) warningEl.hidden = true;
   }
 
   // Status/accuracy
@@ -128,6 +129,9 @@ export function init(): void {
   if (!warningElNullable) throw new Error("Warning element not found");
   warningEl = warningElNullable as HTMLDivElement;
 
+  // Make warning visible immediately
+  warningEl.hidden = false;
+
   // Initialize state from local storage or default
   currentUnit = (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
 
@@ -160,6 +164,9 @@ export function init(): void {
     timeout: 10000, // 10s per fix
   };
 
+  // Initialize timestamp to now so the counter starts from 0 instead of waiting for first fix
+  lastUpdateTimestamp = Date.now();
+
   if ("geolocation" in navigator) {
     setStatus("Requesting GPS...");
     navigator.geolocation.watchPosition(
@@ -168,24 +175,22 @@ export function init(): void {
       watchOptions,
     );
 
-    // Check for stale data every second
+    // Update timer every second
     setInterval(() => {
-      const diff = Date.now() - lastUpdateTimestamp;
-      if (lastUpdateTimestamp > 0 && diff > 10000) {
-        if (warningEl) {
-          warningEl.hidden = false;
+      // Calculate diff. If lastUpdateTimestamp is 0 (shouldn't be due to init above), use Date.now() effectively 0 diff.
+      const diff = Date.now() - (lastUpdateTimestamp || Date.now());
 
-          const { value, unit, maxDigits } = formatDuration(diff);
+      if (warningEl) {
+        // Always ensure it's visible
+        warningEl.hidden = false;
 
-          // Singular/Plural
-          const unitLabel = value === 1 ? unit : `${unit}s`;
+        const { value, unit, maxDigits } = formatDuration(diff);
 
-          // Construct HTML with reserved width for digits
-          // "2ch" for 2 digits, "3ch" for 3 digits, etc.
-          // Note: "ch" width depends on the font, specifically the "0" glyph width.
-          // Since we use tabular-nums, digits should be uniform width.
-          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
-        }
+        // Singular/Plural
+        const unitLabel = value === 1 ? unit : `${unit}s`;
+
+        // Construct HTML with reserved width for digits
+        warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
       }
     }, 1000);
   } else {
