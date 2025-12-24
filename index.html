@@ -1,142 +1,76 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Speedometer</title>
-        <meta name="theme-color" content="#111111" />
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Speedometer</title>
+    <link rel="stylesheet" href="./index.css" />
+    <link rel="icon" href="./icons/icon-512.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="description" content="A simple, accurate GPS speedometer." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#f0f0f0"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#000000"
+    />
+  </head>
+  <body>
+    <div id="warning" class="warning" hidden>Speed data is old</div>
 
-        <!-- PWA manifest -->
-        <link rel="manifest" href="manifest.webmanifest" />
-        <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+    <div class="container">
+      <div
+        id="speed"
+        class="speed"
+        data-placeholder="———"
+        data-placeholder-visible="true"
+      >
+        ———
+      </div>
+      <button id="unit" type="button" class="unit" aria-label="Toggle Unit">MPH</button>
+    </div>
 
-        <!-- iOS PWA support -->
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="icons/generated/icon-192.png" />
+    <!-- Bottom bar with controls/status -->
+    <div class="bottom-bar">
+      <div class="bottom-left-controls">
+        <label for="keepScreenOn">Stay <br class="toggle-break" />Awake</label>
+        <input type="checkbox" id="keepScreenOn" />
+      </div>
 
-        <style>
-            :root {
-                color-scheme: dark light;
-            }
-            html,
-            body {
-                height: 100%;
-                overflow: hidden;
-                overscroll-behavior: none;
-                -ms-overflow-style: none;
-            }
-            body {
-                margin: 0;
-                font-family:
-                    system-ui,
-                    -apple-system,
-                    Segoe UI,
-                    Roboto,
-                    Helvetica,
-                    Arial,
-                    sans-serif;
-                background: #111;
-                color: #eee;
-                display: grid;
-                place-items: center;
-                touch-action: none;
-                box-sizing: border-box;
-                padding-bottom: 8vh;
-            }
-            .container {
-                text-align: center;
-            }
-            .speed {
-                font-size: clamp(64px, 24vw, 250px);
-                font-weight: 700;
-                line-height: 1;
-                font-variant-numeric: tabular-nums lining-nums;
-                font-feature-settings:
-                    "tnum" 1,
-                    "lnum" 1;
-                text-align: right;
-                /* Reserve space for 3 digits (999) to prevent movement */
-                width: 3em;
-                display: block;
-                margin: 0 auto;
-            }
+      <div id="status" class="status">Waiting for GPS...</div>
 
-            .bottom-bar {
-                position: fixed;
-                left: 0;
-                bottom: 12px;
-                width: 100%;
-                display: grid;
-                grid-template-columns: 1fr auto 1fr;
-                align-items: center;
-                padding: 12px;
-                box-sizing: border-box;
-            }
-            body.pwa-installed .bottom-bar {
-                bottom: calc(env(safe-area-inset-bottom) + 10vh);
-            }
-            .status {
-                font-size: 18px;
-                opacity: 0.7;
-            }
+      <a
+        href="https://github.com/samuel-skean/speedometer"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="github-link"
+        aria-label="View source on GitHub"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          stroke="currentColor"
+          stroke-width="2"
+          fill="none"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+          ></path>
+        </svg>
+      </a>
+    </div>
 
-            button.unit {
-                background: #222;
-                color: #eee;
-                border: 1px solid #333;
-                border-radius: 8px;
-                padding: 8px 12px;
-                font-size: 20px;
-                cursor: pointer;
-                display: block;
-                margin: 8px auto 0;
-            }
-
-            button.unit:active {
-                transform: translateY(1px);
-            }
-
-            .bottom-left-controls {
-                display: flex;
-                align-items: center;
-                font-size: 18px;
-                opacity: 0.7;
-                text-align: left;
-            }
-
-            .bottom-left-controls input {
-                margin-left: 8px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div id="speed" class="speed"></div>
-            <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
-        </div>
-        <div class="bottom-bar">
-            <div class="bottom-left-controls">
-                <label for="keepScreenOn">Stay<br>Awake</label>
-                <input type="checkbox" id="keepScreenOn" />
-            </div>
-            <div id="status" class="status">Waiting for GPS...</div>
-            <div class="placeholder"></div>
-        </div>
-
-        <!-- App logic -->
-        <script type="module" src="/src/pwa-detection.ts"></script>
-
-        <script type="module" src="/src/app.ts"></script>
-        <!-- Register service worker -->
-        <script>
-            if ("serviceWorker" in navigator) {
-                window.addEventListener("load", () => {
-                    navigator.serviceWorker
-                        .register("/service-worker.js")
-                        .catch((e) => console.error("SW registration failed:", e));
-                });
-            }
-        </script>
-    </body>
+    <script type="module" src="/src/app.ts"></script>
+  </body>
 </html>
