@@ -1,6 +1,6 @@
 import { fireEvent } from "@testing-library/dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { init, resetState } from "../src/app";
+import { PLACEHOLDER, init, resetState } from "../src/app";
 
 describe("Speedometer App", () => {
   let speedEl: HTMLElement;
@@ -14,7 +14,12 @@ describe("Speedometer App", () => {
     document.body.innerHTML = `
       <div id="warning" class="warning" hidden>Speed data is old</div>
       <div class="container">
-          <div id="speed" class="speed">&mdash;&mdash;&mdash;</div>
+          <div
+            id="speed"
+            class="speed"
+            data-placeholder="${PLACEHOLDER}"
+            data-placeholder-visible="true"
+          >${PLACEHOLDER}</div>
           <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
       </div>
       <div class="bottom-bar">
@@ -79,8 +84,7 @@ describe("Speedometer App", () => {
 
   it("initializes with default values", () => {
     init();
-    // &mdash; is parsed to the em dash character '—'
-    expect(speedEl.innerHTML).toBe("———");
+    expect(speedEl.textContent).toBe(PLACEHOLDER);
     expect(unitBtn.textContent).toBe("mph");
     expect(statusEl.textContent).toBe("Requesting GPS...");
     expect(warningEl.hidden).toBe(true);
@@ -135,6 +139,7 @@ describe("Speedometer App", () => {
     }
 
     expect(speedEl.textContent).toBe("22");
+    expect(speedEl.dataset.placeholderVisible).toBe("false");
     expect(statusEl.textContent).toBe("Accuracy: ±5m");
     expect(warningEl.hidden).toBe(true);
 
@@ -172,9 +177,10 @@ describe("Speedometer App", () => {
       throw new Error("watchSuccessCallback was not set");
     }
 
-    // Should remain dashes if speed is null (no update logic triggered for null speed in app.ts)
+    // Should remain placeholder if speed is null (no update logic triggered for null speed in app.ts)
     // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
-    expect(speedEl.textContent).toMatch(/—+/);
+    expect(speedEl.textContent).toBe(PLACEHOLDER);
+    expect(speedEl.dataset.placeholderVisible).toBe("true");
 
     watchPositionSpy.mockRestore();
   });
@@ -259,8 +265,8 @@ describe("Speedometer App", () => {
       // So for these invalid inputs, renderSpeed is NOT called.
       // Thus the display should remain at the default (or previous value).
 
-      // Let's verify it remains dashes (since we haven't sent a valid speed yet).
-      expect(speedEl.innerHTML).toBe("———");
+      // Let's verify it remains the placeholder (since we haven't sent a valid speed yet).
+      expect(speedEl.textContent).toBe(PLACEHOLDER);
     });
 
     // Now send a valid speed to prove it still works

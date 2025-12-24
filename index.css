@@ -51,6 +51,28 @@ body {
   width: 3em;
   display: block;
   margin: 0 auto;
+  position: relative;
+}
+
+.speed::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: pre;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.speed[data-placeholder-visible="true"] {
+  color: transparent;
+}
+
+.speed[data-placeholder-visible="true"]::before {
+  opacity: 1;
 }
 
 @media (orientation: landscape) {
