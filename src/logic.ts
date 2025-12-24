@@ -32,3 +32,40 @@ export function convertSpeed(metersPerSecond: number, unit: Unit): number {
   // Round to integer
   return Math.round(clamped);
 }
+
+export interface FormattedDuration {
+  value: number;
+  unit: "second" | "minute" | "hour" | "day" | "year";
+  maxDigits: number;
+}
+
+export function formatDuration(ms: number): FormattedDuration {
+  // Handle edge cases
+  if (!Number.isFinite(ms) || ms < 0) {
+    return { value: 0, unit: "second", maxDigits: 2 };
+  }
+
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) {
+    return { value: seconds, unit: "second", maxDigits: 2 };
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return { value: minutes, unit: "minute", maxDigits: 2 };
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return { value: hours, unit: "hour", maxDigits: 2 };
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 365) {
+    return { value: days, unit: "day", maxDigits: 3 };
+  }
+
+  const years = Math.floor(days / 365);
+  // Default to 3 digits for years (up to 999 years)
+  return { value: years, unit: "year", maxDigits: 3 };
+}
