@@ -152,3 +152,11 @@ button.unit:active {
   font-size: 1.2em;
   box-sizing: border-box;
 }
+
+.warning-digits {
+  display: inline-block;
+  text-align: right;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}

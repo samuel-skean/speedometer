@@ -4,7 +4,7 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
-import { convertSpeed, type Unit, Units } from "./logic";
+import { convertSpeed, formatDuration, type Unit, Units } from "./logic";
 
 // Define DOM elements
 let speedEl: HTMLDivElement;
@@ -157,7 +157,7 @@ export function init(): void {
   const watchOptions: PositionOptions = {
     enableHighAccuracy: true,
     maximumAge: 1000, // accept 1s old cached positions
-    timeout: 10000, // 10s per fix
+    timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
   };
 
   if ("geolocation" in navigator) {
@@ -170,8 +170,19 @@ export function init(): void {
 
     // Check for stale data every second
     setInterval(() => {
-      if (lastUpdateTimestamp > 0 && Date.now() - lastUpdateTimestamp > 10000) {
-        if (warningEl) warningEl.hidden = false;
+      const diff = Date.now() - lastUpdateTimestamp;
+      if (lastUpdateTimestamp > 0 && diff > 10000) {
+        if (warningEl) {
+          warningEl.hidden = false;
+
+          const { value, unit, maxDigits } = formatDuration(diff);
+
+          // Singular/Plural
+          const unitLabel = value === 1 ? unit : `${unit}s`;
+
+          // Construct HTML with reserved width for digits
+          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
+        }
       }
     }, 1000);
   } else {
