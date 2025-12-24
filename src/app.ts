@@ -57,7 +57,8 @@ async function handleWakeLock(): Promise<void> {
       wakeLock = await navigator.wakeLock.request("screen");
       wakeLock.addEventListener("release", () => {
         // tristate checkbox: indeterminate when released by system
-        if (keepScreenOnEl) keepScreenOnEl.indeterminate = true;
+        if (keepScreenOnEl && keepScreenOnEl.checked)
+          keepScreenOnEl.indeterminate = true;
       });
     } else {
       wakeLock?.release();
