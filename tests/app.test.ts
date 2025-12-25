@@ -33,24 +33,33 @@ describe("Speedometer App", () => {
     `;
 
     const speedElNullable = document.getElementById("speed");
-    if (!speedElNullable) throw new Error("Speed element not found");
+    if (!speedElNullable) {
+      throw new Error("Speed element not found");
+    }
     speedEl = speedElNullable;
 
     const statusElNullable = document.getElementById("status");
-    if (!statusElNullable) throw new Error("Status element not found");
+    if (!statusElNullable) {
+      throw new Error("Status element not found");
+    }
     statusEl = statusElNullable;
 
     const unitBtnNullable = document.getElementById("unit");
-    if (!unitBtnNullable) throw new Error("Unit button not found");
+    if (!unitBtnNullable) {
+      throw new Error("Unit button not found");
+    }
     unitBtn = unitBtnNullable;
 
     const keepScreenOnElNullable = document.getElementById("keepScreenOn");
-    if (!keepScreenOnElNullable)
+    if (!keepScreenOnElNullable) {
       throw new Error("Keep screen on element not found");
+    }
     keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
 
     const warningElNullable = document.getElementById("warning");
-    if (!warningElNullable) throw new Error("Warning element not found");
+    if (!warningElNullable) {
+      throw new Error("Warning element not found");
+    }
     warningEl = warningElNullable;
 
     // Provide a speed getter to simulate platforms that expose native speed
@@ -221,7 +230,9 @@ describe("Speedometer App", () => {
     const watchPositionSpy = vi
       .spyOn(navigator.geolocation, "watchPosition")
       .mockImplementation((_, error) => {
-        if (error === null) throw new Error(`error was null`);
+        if (error === null) {
+          throw new Error(`error was null`);
+        }
         watchErrorCallback = error;
         return 1;
       });
