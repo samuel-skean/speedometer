@@ -14,7 +14,7 @@
     "render:icons:custom": "tsx scripts/render-icons.ts --src=icons/icon.svg --out=icons/generated",
     "certs:install": "mkcert -install",
     "certs:generate": "cd certs && mkcert localhost 127.0.0.1 ::1",
-    "postinstall": "npm run render:icons && ( command -v mkcert >/dev/null 2>&1 && npm run certs:install && npm run certs:generate || echo \"Skipping mkcert (mkcert not found)\" )"
+    "postinstall": "if [ -z \"$CI\" ]; then npm run render:icons && ( command -v mkcert >/dev/null 2>&1 && npm run certs:install && npm run certs:generate || echo \"Skipping mkcert (mkcert not found)\" ); fi"
   },
   "dependencies": {
     "sharp": "^0.33.3"
