@@ -271,7 +271,7 @@ export function init(): void {
   // Request high-accuracy GPS and frequent updates
   const watchOptions: PositionOptions = {
     enableHighAccuracy: true,
-    maximumAge: 1000, // accept 1s old cached positions
+    maximumAge: 250, // accept 250ms old cached positions (4Hz)
     timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
   };
 
