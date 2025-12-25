@@ -52,6 +52,19 @@ describe("Speedometer App", () => {
     if (!warningElNullable) throw new Error("Warning element not found");
     warningEl = warningElNullable;
 
+    // Provide a speed getter to simulate platforms that expose native speed
+    function MockGeolocationCoordinates(this: unknown): void {}
+    Object.defineProperty(MockGeolocationCoordinates.prototype, "speed", {
+      get() {
+        return 0;
+      },
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, "GeolocationCoordinates", {
+      value: MockGeolocationCoordinates,
+      writable: true,
+    });
+
     // Reset LocalStorage
     localStorage.clear();
 
@@ -283,5 +296,31 @@ describe("Speedometer App", () => {
     expect(speedEl.textContent).toBe("22");
 
     watchPositionSpy.mockRestore();
+  });
+
+  it("replaces the UI when the platform can't provide speed", () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      (globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates })
+        .GeolocationCoordinates.prototype,
+      "speed",
+    );
+
+    delete (globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates })
+      .GeolocationCoordinates.prototype.speed;
+
+    init();
+
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Unsupported device");
+    expect(bodyText).toContain("can't report GPS speed");
+
+    // Restore the descriptor for other tests
+    if (originalDescriptor) {
+      Object.defineProperty(
+        (globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates }).GeolocationCoordinates.prototype,
+        "speed",
+        originalDescriptor,
+      );
+    }
   });
 });

@@ -53,6 +53,45 @@ function setStatus(text: string): void {
   if (statusEl) statusEl.textContent = text;
 }
 
+function renderUnsupported(): void {
+  document.body.innerHTML = `
+    <main class="unsupported" role="alert">
+      <div class="unsupported__content">
+        <p class="unsupported__eyebrow">Unsupported device</p>
+        <h1>This device can't report GPS speed.</h1>
+        <p>
+          Your browser's location API is missing the native <code>speed</code> field this
+          app relies on, so we can't show your speed here.
+        </p>
+      </div>
+    </main>
+  `;
+}
+
+function hasNativeSpeedField(): boolean {
+  // Basic geolocation support check
+  if (!("geolocation" in navigator)) return false;
+
+  const coordsCtor = (globalThis as { GeolocationCoordinates?: unknown }).GeolocationCoordinates;
+
+  if (typeof coordsCtor !== "function") return false;
+
+  const descriptor = Object.getOwnPropertyDescriptor(coordsCtor.prototype, "speed");
+
+  if (!descriptor) return false;
+
+  if (typeof descriptor.get === "function") {
+    try {
+      const value = descriptor.get.call(Object.create(coordsCtor.prototype));
+      if (typeof value === "number" || value === null) return true;
+    } catch (_err) {
+      // Ignore getter errors and continue to fallback checks below
+    }
+  }
+
+  return "value" in descriptor || typeof descriptor.get === "function";
+}
+
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
     if (keepScreenOnEl) keepScreenOnEl.disabled = true;
@@ -119,6 +158,11 @@ export function resetState(): void {
 }
 
 export function init(): void {
+  if (!hasNativeSpeedField()) {
+    renderUnsupported();
+    return;
+  }
+
   const speedElNullable = document.getElementById("speed");
   if (!speedElNullable) throw new Error("Speed element not found");
   speedEl = speedElNullable as HTMLDivElement;
