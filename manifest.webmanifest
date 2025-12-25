@@ -1,6 +1,5 @@
 {
   "name": "Speedometer",
-  "short_name": "Speedo",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
