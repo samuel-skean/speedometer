@@ -4,7 +4,7 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
-import { convertSpeed, formatDuration, type Unit, Units } from "./logic.js";
+import { convertSpeed, formatDuration, type Unit, Units } from "./logic";
 
 // Define DOM elements
 let speedEl: HTMLDivElement;
