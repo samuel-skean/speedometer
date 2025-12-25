@@ -61,7 +61,8 @@ function renderUnsupported(): void {
         <h1>This device can't report GPS speed.</h1>
         <p>
           Your browser's location API is missing the native <code>speed</code> field this
-          app relies on, so we can't show your speed here.
+          app relies on, or this device doesn't have built-in GPS hardware, so we can't show
+          your speed here.
         </p>
       </div>
     </main>
@@ -94,6 +95,18 @@ function hasNativeSpeedField(): boolean {
   }
 
   return "value" in descriptor || typeof descriptor.get === "function";
+}
+
+function isLikelyGpsDevice(): boolean {
+  const uaData = (
+    navigator as Navigator & { userAgentData?: { mobile?: boolean } }
+  ).userAgentData;
+
+  if (typeof uaData?.mobile === "boolean") return uaData.mobile;
+
+  const ua = navigator.userAgent || "";
+
+  return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
 }
 
 async function handleWakeLock(): Promise<void> {
@@ -162,7 +175,7 @@ export function resetState(): void {
 }
 
 export function init(): void {
-  if (!hasNativeSpeedField()) {
+  if (!hasNativeSpeedField() || !isLikelyGpsDevice()) {
     renderUnsupported();
     return;
   }

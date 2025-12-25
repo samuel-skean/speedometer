@@ -8,6 +8,7 @@ describe("Speedometer App", () => {
   let unitBtn: HTMLElement;
   let keepScreenOnEl: HTMLInputElement;
   let warningEl: HTMLElement;
+  let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
     // Reset DOM
@@ -88,11 +89,27 @@ describe("Speedometer App", () => {
       },
       writable: true,
     });
+
+    mobileOverride = Object.getOwnPropertyDescriptor(
+      navigator,
+      "userAgentData",
+    );
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { mobile: true },
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     resetState();
+
+    if (mobileOverride) {
+      Object.defineProperty(navigator, "userAgentData", mobileOverride);
+    } else {
+      delete (navigator as { userAgentData?: unknown }).userAgentData;
+    }
   });
 
   it("initializes with default values", () => {
@@ -327,5 +344,18 @@ describe("Speedometer App", () => {
         originalDescriptor,
       );
     }
+  });
+
+  it("replaces the UI on devices that report no GPS hardware", () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { mobile: false },
+      configurable: true,
+    });
+
+    init();
+
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Unsupported device");
+    expect(bodyText).toContain("doesn't have built-in GPS hardware");
   });
 });
