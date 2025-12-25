@@ -72,11 +72,15 @@ function hasNativeSpeedField(): boolean {
   // Basic geolocation support check
   if (!("geolocation" in navigator)) return false;
 
-  const coordsCtor = (globalThis as { GeolocationCoordinates?: unknown }).GeolocationCoordinates;
+  const coordsCtor = (globalThis as { GeolocationCoordinates?: unknown })
+    .GeolocationCoordinates;
 
   if (typeof coordsCtor !== "function") return false;
 
-  const descriptor = Object.getOwnPropertyDescriptor(coordsCtor.prototype, "speed");
+  const descriptor = Object.getOwnPropertyDescriptor(
+    coordsCtor.prototype,
+    "speed",
+  );
 
   if (!descriptor) return false;
 

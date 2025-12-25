@@ -305,8 +305,9 @@ describe("Speedometer App", () => {
       "speed",
     );
 
-    delete (globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates })
-      .GeolocationCoordinates.prototype.speed;
+    delete (
+      globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates }
+    ).GeolocationCoordinates.prototype.speed;
 
     init();
 
@@ -317,7 +318,11 @@ describe("Speedometer App", () => {
     // Restore the descriptor for other tests
     if (originalDescriptor) {
       Object.defineProperty(
-        (globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates }).GeolocationCoordinates.prototype,
+        (
+          globalThis as {
+            GeolocationCoordinates: typeof GeolocationCoordinates;
+          }
+        ).GeolocationCoordinates.prototype,
         "speed",
         originalDescriptor,
       );
