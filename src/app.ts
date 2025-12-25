@@ -29,7 +29,9 @@ function showPlaceholder(): void {
 }
 
 function updateUnitUI(): void {
-  if (unitBtn) unitBtn.textContent = currentUnit;
+  if (unitBtn) {
+    unitBtn.textContent = currentUnit;
+  }
 }
 
 // Render the speed (expects m/s)
@@ -50,7 +52,9 @@ function renderSpeed(metersPerSecond: number): void {
 }
 
 function setStatus(text: string): void {
-  if (statusEl) statusEl.textContent = text;
+  if (statusEl) {
+    statusEl.textContent = text;
+  }
 }
 
 function renderUnsupported(): void {
@@ -71,24 +75,32 @@ function renderUnsupported(): void {
 
 function hasNativeSpeedField(): boolean {
   // Basic geolocation support check
-  if (!("geolocation" in navigator)) return false;
+  if (!("geolocation" in navigator)) {
+    return false;
+  }
 
   const coordsCtor = (globalThis as { GeolocationCoordinates?: unknown })
     .GeolocationCoordinates;
 
-  if (typeof coordsCtor !== "function") return false;
+  if (typeof coordsCtor !== "function") {
+    return false;
+  }
 
   const descriptor = Object.getOwnPropertyDescriptor(
     coordsCtor.prototype,
     "speed",
   );
 
-  if (!descriptor) return false;
+  if (!descriptor) {
+    return false;
+  }
 
   if (typeof descriptor.get === "function") {
     try {
       const value = descriptor.get.call(Object.create(coordsCtor.prototype));
-      if (typeof value === "number" || value === null) return true;
+      if (typeof value === "number" || value === null) {
+        return true;
+      }
     } catch (_err) {
       // Ignore getter errors and continue to fallback checks below
     }
@@ -102,7 +114,9 @@ function isLikelyGpsDevice(): boolean {
     navigator as Navigator & { userAgentData?: { mobile?: boolean } }
   ).userAgentData;
 
-  if (typeof uaData?.mobile === "boolean") return uaData.mobile;
+  if (typeof uaData?.mobile === "boolean") {
+    return uaData.mobile;
+  }
 
   const ua = navigator.userAgent || "";
 
@@ -111,7 +125,9 @@ function isLikelyGpsDevice(): boolean {
 
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
-    if (keepScreenOnEl) keepScreenOnEl.disabled = true;
+    if (keepScreenOnEl) {
+      keepScreenOnEl.disabled = true;
+    }
     return;
   }
 
@@ -121,15 +137,21 @@ async function handleWakeLock(): Promise<void> {
       keepScreenOnEl.indeterminate = false;
       wakeLock.addEventListener("release", () => {
         // tristate checkbox: indeterminate when released by system
-        if (keepScreenOnEl) keepScreenOnEl.indeterminate = true;
+        if (keepScreenOnEl) {
+          keepScreenOnEl.indeterminate = true;
+        }
       });
     } else {
       wakeLock?.release();
       wakeLock = null;
-      if (keepScreenOnEl) keepScreenOnEl.indeterminate = false;
+      if (keepScreenOnEl) {
+        keepScreenOnEl.indeterminate = false;
+      }
     }
   } catch (_err) {
-    if (keepScreenOnEl) keepScreenOnEl.checked = false;
+    if (keepScreenOnEl) {
+      keepScreenOnEl.checked = false;
+    }
   }
 }
 
@@ -141,7 +163,9 @@ function handlePosition(pos: GeolocationPosition): void {
     lastSpeedMs = speed;
     renderSpeed(speed);
     lastUpdateTimestamp = Date.now();
-    if (warningEl) warningEl.hidden = true;
+    if (warningEl) {
+      warningEl.hidden = true;
+    }
   }
 
   // Status/accuracy
@@ -181,26 +205,35 @@ export function init(): void {
   }
 
   const speedElNullable = document.getElementById("speed");
-  if (!speedElNullable) throw new Error("Speed element not found");
+  if (!speedElNullable) {
+    throw new Error("Speed element not found");
+  }
   speedEl = speedElNullable as HTMLDivElement;
   speedEl.dataset.placeholder = PLACEHOLDER;
   showPlaceholder();
 
   const statusElNullable = document.getElementById("status");
-  if (!statusElNullable) throw new Error("Status element not found");
+  if (!statusElNullable) {
+    throw new Error("Status element not found");
+  }
   statusEl = statusElNullable as HTMLDivElement;
 
   const unitBtnNullable = document.getElementById("unit");
-  if (!unitBtnNullable) throw new Error("Unit button not found");
+  if (!unitBtnNullable) {
+    throw new Error("Unit button not found");
+  }
   unitBtn = unitBtnNullable as HTMLButtonElement;
 
   const keepScreenOnElNullable = document.getElementById("keepScreenOn");
-  if (!keepScreenOnElNullable)
+  if (!keepScreenOnElNullable) {
     throw new Error("Keep screen on element not found");
+  }
   keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
 
   const warningElNullable = document.getElementById("warning");
-  if (!warningElNullable) throw new Error("Warning element not found");
+  if (!warningElNullable) {
+    throw new Error("Warning element not found");
+  }
   warningEl = warningElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
