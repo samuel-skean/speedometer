@@ -18,6 +18,7 @@ let currentUnit: Unit;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
+let hasIgnoredFirstValue = false;
 
 export const PLACEHOLDER = "———";
 
@@ -160,11 +161,16 @@ function handlePosition(pos: GeolocationPosition): void {
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    lastSpeedMs = speed;
-    renderSpeed(speed);
-    lastUpdateTimestamp = Date.now();
-    if (warningEl) {
-      warningEl.hidden = true;
+    if (!hasIgnoredFirstValue) {
+      hasIgnoredFirstValue = true;
+      // Intentionally fall through to status/accuracy updates
+    } else {
+      lastSpeedMs = speed;
+      renderSpeed(speed);
+      lastUpdateTimestamp = Date.now();
+      if (warningEl) {
+        warningEl.hidden = true;
+      }
     }
   }
 
@@ -196,6 +202,7 @@ export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
   wakeLock = null;
+  hasIgnoredFirstValue = false;
 }
 
 export function init(): void {

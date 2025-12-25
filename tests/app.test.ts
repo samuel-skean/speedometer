@@ -172,6 +172,9 @@ describe("Speedometer App", () => {
 
     // Trigger the callback
     if (watchSuccessCallback) {
+      // First update should be ignored
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      // Send it again to trigger the update
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
@@ -186,6 +189,51 @@ describe("Speedometer App", () => {
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
     expect(speedEl.textContent).toBe("36");
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("ignores the first speed value and waits for the second", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    const mockPosition1 = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: Date.now(),
+    };
+
+    const mockPosition2 = {
+      coords: {
+        speed: 20,
+        accuracy: 5,
+      },
+      timestamp: Date.now() + 1000,
+    };
+
+    if (watchSuccessCallback) {
+      // First update
+      watchSuccessCallback(mockPosition1 as unknown as GeolocationPosition);
+      // Should still be placeholder
+      expect(speedEl.textContent).toBe(PLACEHOLDER);
+
+      // Second update
+      watchSuccessCallback(mockPosition2 as unknown as GeolocationPosition);
+      // 20 m/s * 2.23694 = 44.7388 -> 45
+      expect(speedEl.textContent).toBe("45");
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
 
     watchPositionSpy.mockRestore();
   });
@@ -317,6 +365,9 @@ describe("Speedometer App", () => {
       timestamp: Date.now(),
     };
     if (watchSuccessCallback) {
+      // First one ignored
+      watchSuccessCallback(validPosition as unknown as GeolocationPosition);
+      // Second one accepted
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
