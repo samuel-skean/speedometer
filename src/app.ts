@@ -18,6 +18,9 @@ let currentUnit: Unit;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
+let firstSpeedTimestamp: number | null = null;
+
+const GPS_WARMUP_MS = 1000;
 
 export const PLACEHOLDER = "———";
 
@@ -29,7 +32,9 @@ function showPlaceholder(): void {
 }
 
 function updateUnitUI(): void {
-  if (unitBtn) unitBtn.textContent = currentUnit;
+  if (unitBtn) {
+    unitBtn.textContent = currentUnit;
+  }
 }
 
 // Render the speed (expects m/s)
@@ -50,12 +55,82 @@ function renderSpeed(metersPerSecond: number): void {
 }
 
 function setStatus(text: string): void {
-  if (statusEl) statusEl.textContent = text;
+  if (statusEl) {
+    statusEl.textContent = text;
+  }
+}
+
+function renderUnsupported(): void {
+  document.body.innerHTML = `
+    <main class="unsupported" role="alert">
+      <div class="unsupported__content">
+        <p class="unsupported__eyebrow">Unsupported device</p>
+        <h1>This device can't report GPS speed.</h1>
+        <p>
+          Your browser's location API is missing the native <code>speed</code> field this
+          app relies on, or this device doesn't have built-in GPS hardware, so we can't show
+          your speed here.
+        </p>
+      </div>
+    </main>
+  `;
+}
+
+function hasNativeSpeedField(): boolean {
+  // Basic geolocation support check
+  if (!("geolocation" in navigator)) {
+    return false;
+  }
+
+  const coordsCtor = (globalThis as { GeolocationCoordinates?: unknown })
+    .GeolocationCoordinates;
+
+  if (typeof coordsCtor !== "function") {
+    return false;
+  }
+
+  const descriptor = Object.getOwnPropertyDescriptor(
+    coordsCtor.prototype,
+    "speed",
+  );
+
+  if (!descriptor) {
+    return false;
+  }
+
+  if (typeof descriptor.get === "function") {
+    try {
+      const value = descriptor.get.call(Object.create(coordsCtor.prototype));
+      if (typeof value === "number" || value === null) {
+        return true;
+      }
+    } catch (_err) {
+      // Ignore getter errors and continue to fallback checks below
+    }
+  }
+
+  return "value" in descriptor || typeof descriptor.get === "function";
+}
+
+function isLikelyGpsDevice(): boolean {
+  const uaData = (
+    navigator as Navigator & { userAgentData?: { mobile?: boolean } }
+  ).userAgentData;
+
+  if (typeof uaData?.mobile === "boolean") {
+    return uaData.mobile;
+  }
+
+  const ua = navigator.userAgent || "";
+
+  return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
 }
 
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
-    if (keepScreenOnEl) keepScreenOnEl.disabled = true;
+    if (keepScreenOnEl) {
+      keepScreenOnEl.disabled = true;
+    }
     return;
   }
 
@@ -65,15 +140,21 @@ async function handleWakeLock(): Promise<void> {
       keepScreenOnEl.indeterminate = false;
       wakeLock.addEventListener("release", () => {
         // tristate checkbox: indeterminate when released by system
-        if (keepScreenOnEl) keepScreenOnEl.indeterminate = true;
+        if (keepScreenOnEl) {
+          keepScreenOnEl.indeterminate = true;
+        }
       });
     } else {
       wakeLock?.release();
       wakeLock = null;
-      if (keepScreenOnEl) keepScreenOnEl.indeterminate = false;
+      if (keepScreenOnEl) {
+        keepScreenOnEl.indeterminate = false;
+      }
     }
   } catch (_err) {
-    if (keepScreenOnEl) keepScreenOnEl.checked = false;
+    if (keepScreenOnEl) {
+      keepScreenOnEl.checked = false;
+    }
   }
 }
 
@@ -82,10 +163,19 @@ function handlePosition(pos: GeolocationPosition): void {
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    lastSpeedMs = speed;
-    renderSpeed(speed);
-    lastUpdateTimestamp = Date.now();
-    if (warningEl) warningEl.hidden = true;
+    const now = Date.now();
+    if (firstSpeedTimestamp === null) {
+      firstSpeedTimestamp = now;
+    }
+
+    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
+      lastSpeedMs = speed;
+      renderSpeed(speed);
+      lastUpdateTimestamp = now;
+      if (warningEl) {
+        warningEl.hidden = true;
+      }
+    }
   }
 
   // Status/accuracy
@@ -116,30 +206,45 @@ export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
   wakeLock = null;
+  firstSpeedTimestamp = null;
 }
 
 export function init(): void {
+  if (!hasNativeSpeedField() || !isLikelyGpsDevice()) {
+    renderUnsupported();
+    return;
+  }
+
   const speedElNullable = document.getElementById("speed");
-  if (!speedElNullable) throw new Error("Speed element not found");
+  if (!speedElNullable) {
+    throw new Error("Speed element not found");
+  }
   speedEl = speedElNullable as HTMLDivElement;
   speedEl.dataset.placeholder = PLACEHOLDER;
   showPlaceholder();
 
   const statusElNullable = document.getElementById("status");
-  if (!statusElNullable) throw new Error("Status element not found");
+  if (!statusElNullable) {
+    throw new Error("Status element not found");
+  }
   statusEl = statusElNullable as HTMLDivElement;
 
   const unitBtnNullable = document.getElementById("unit");
-  if (!unitBtnNullable) throw new Error("Unit button not found");
+  if (!unitBtnNullable) {
+    throw new Error("Unit button not found");
+  }
   unitBtn = unitBtnNullable as HTMLButtonElement;
 
   const keepScreenOnElNullable = document.getElementById("keepScreenOn");
-  if (!keepScreenOnElNullable)
+  if (!keepScreenOnElNullable) {
     throw new Error("Keep screen on element not found");
+  }
   keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
 
   const warningElNullable = document.getElementById("warning");
-  if (!warningElNullable) throw new Error("Warning element not found");
+  if (!warningElNullable) {
+    throw new Error("Warning element not found");
+  }
   warningEl = warningElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
@@ -170,7 +275,7 @@ export function init(): void {
   // Request high-accuracy GPS and frequent updates
   const watchOptions: PositionOptions = {
     enableHighAccuracy: true,
-    maximumAge: 1000, // accept 1s old cached positions
+    maximumAge: 250, // accept 250ms old cached positions (4Hz)
     timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
   };
 
