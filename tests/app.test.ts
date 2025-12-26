@@ -11,6 +11,8 @@ describe("Speedometer App", () => {
   let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+
     // Reset DOM
     document.body.innerHTML = `
       <div id="warning" class="warning" hidden>Speed data is old</div>
@@ -112,6 +114,7 @@ describe("Speedometer App", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     resetState();
 
     if (mobileOverride) {
@@ -172,8 +175,12 @@ describe("Speedometer App", () => {
 
     // Trigger the callback
     if (watchSuccessCallback) {
-      // First update should be ignored
+      // First update starts the timer
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+
+      // Advance time by 1s (GPS_WARMUP_SECONDS)
+      vi.advanceTimersByTime(1000);
+
       // Send it again to trigger the update
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
@@ -193,7 +200,7 @@ describe("Speedometer App", () => {
     watchPositionSpy.mockRestore();
   });
 
-  it("ignores the first speed value and waits for the second", () => {
+  it("ignores readings during warmup period", () => {
     let watchSuccessCallback: PositionCallback | undefined;
 
     const watchPositionSpy = vi
@@ -205,7 +212,7 @@ describe("Speedometer App", () => {
 
     init();
 
-    const mockPosition1 = {
+    const mockPosition = {
       coords: {
         speed: 10,
         accuracy: 5,
@@ -213,24 +220,21 @@ describe("Speedometer App", () => {
       timestamp: Date.now(),
     };
 
-    const mockPosition2 = {
-      coords: {
-        speed: 20,
-        accuracy: 5,
-      },
-      timestamp: Date.now() + 1000,
-    };
-
     if (watchSuccessCallback) {
-      // First update
-      watchSuccessCallback(mockPosition1 as unknown as GeolocationPosition);
-      // Should still be placeholder
+      // Reading 1 (T=0) -> Ignored
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
       expect(speedEl.textContent).toBe(PLACEHOLDER);
 
-      // Second update
-      watchSuccessCallback(mockPosition2 as unknown as GeolocationPosition);
-      // 20 m/s * 2.23694 = 44.7388 -> 45
-      expect(speedEl.textContent).toBe("45");
+      // Reading 2 (T=0.5s) -> Ignored
+      vi.advanceTimersByTime(500);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(speedEl.textContent).toBe(PLACEHOLDER);
+
+      // Reading 3 (T=1.0s) -> Accepted (>= 1000ms)
+      vi.advanceTimersByTime(500);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      // 10 m/s * 2.23694 = 22.3694 -> 22
+      expect(speedEl.textContent).toBe("22");
     } else {
       throw new Error("watchSuccessCallback was not set");
     }
@@ -312,8 +316,6 @@ describe("Speedometer App", () => {
 
     // Simulate click
     fireEvent.click(keepScreenOnEl); // changes checked state to true and fires change event
-    // Wait for async handler
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(navigator.wakeLock.request).toHaveBeenCalledWith("screen");
   });
@@ -367,6 +369,10 @@ describe("Speedometer App", () => {
     if (watchSuccessCallback) {
       // First one ignored
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
+
+      // Advance past warmup
+      vi.advanceTimersByTime(1000);
+
       // Second one accepted
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
     } else {
