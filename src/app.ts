@@ -18,6 +18,9 @@ let currentUnit: Unit;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
+let firstSpeedTimestamp: number | null = null;
+
+const GPS_WARMUP_MS = 1000;
 
 export const PLACEHOLDER = "———";
 
@@ -160,11 +163,18 @@ function handlePosition(pos: GeolocationPosition): void {
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    lastSpeedMs = speed;
-    renderSpeed(speed);
-    lastUpdateTimestamp = Date.now();
-    if (warningEl) {
-      warningEl.hidden = true;
+    const now = Date.now();
+    if (firstSpeedTimestamp === null) {
+      firstSpeedTimestamp = now;
+    }
+
+    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
+      lastSpeedMs = speed;
+      renderSpeed(speed);
+      lastUpdateTimestamp = now;
+      if (warningEl) {
+        warningEl.hidden = true;
+      }
     }
   }
 
@@ -196,6 +206,7 @@ export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
   wakeLock = null;
+  firstSpeedTimestamp = null;
 }
 
 export function init(): void {
@@ -264,7 +275,7 @@ export function init(): void {
   // Request high-accuracy GPS and frequent updates
   const watchOptions: PositionOptions = {
     enableHighAccuracy: true,
-    maximumAge: 1000, // accept 1s old cached positions
+    maximumAge: 250, // accept 250ms old cached positions (4Hz)
     timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
   };
 
