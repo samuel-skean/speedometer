@@ -20,7 +20,7 @@ let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 let firstSpeedTimestamp: number | null = null;
 
-const GPS_WARMUP_SECONDS = 1;
+const GPS_WARMUP_MS = 1000;
 
 export const PLACEHOLDER = "———";
 
@@ -168,7 +168,7 @@ function handlePosition(pos: GeolocationPosition): void {
       firstSpeedTimestamp = now;
     }
 
-    if (now - firstSpeedTimestamp >= GPS_WARMUP_SECONDS * 1000) {
+    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
       lastSpeedMs = speed;
       renderSpeed(speed);
       lastUpdateTimestamp = now;
