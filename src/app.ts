@@ -290,7 +290,7 @@ export function init(): void {
     // Check for stale data every second
     setInterval(() => {
       const diff = Date.now() - lastUpdateTimestamp;
-      if (lastUpdateTimestamp > 0 && diff > 10000) {
+      if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
 
