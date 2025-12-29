@@ -8,8 +8,11 @@ describe("Speedometer App", () => {
   let unitBtn: HTMLElement;
   let keepScreenOnEl: HTMLInputElement;
   let warningEl: HTMLElement;
+  let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+
     // Reset DOM
     document.body.innerHTML = `
       <div id="warning" class="warning" hidden>Speed data is old</div>
@@ -32,25 +35,47 @@ describe("Speedometer App", () => {
     `;
 
     const speedElNullable = document.getElementById("speed");
-    if (!speedElNullable) throw new Error("Speed element not found");
+    if (!speedElNullable) {
+      throw new Error("Speed element not found");
+    }
     speedEl = speedElNullable;
 
     const statusElNullable = document.getElementById("status");
-    if (!statusElNullable) throw new Error("Status element not found");
+    if (!statusElNullable) {
+      throw new Error("Status element not found");
+    }
     statusEl = statusElNullable;
 
     const unitBtnNullable = document.getElementById("unit");
-    if (!unitBtnNullable) throw new Error("Unit button not found");
+    if (!unitBtnNullable) {
+      throw new Error("Unit button not found");
+    }
     unitBtn = unitBtnNullable;
 
     const keepScreenOnElNullable = document.getElementById("keepScreenOn");
-    if (!keepScreenOnElNullable)
+    if (!keepScreenOnElNullable) {
       throw new Error("Keep screen on element not found");
+    }
     keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
 
     const warningElNullable = document.getElementById("warning");
-    if (!warningElNullable) throw new Error("Warning element not found");
+    if (!warningElNullable) {
+      throw new Error("Warning element not found");
+    }
     warningEl = warningElNullable;
+
+    // Provide a speed getter to simulate platforms that expose native speed
+    function MockGeolocationCoordinates(this: unknown): void {}
+    Object.defineProperty(MockGeolocationCoordinates.prototype, "speed", {
+      get() {
+        return 0;
+      },
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, "GeolocationCoordinates", {
+      value: MockGeolocationCoordinates,
+      writable: true,
+    });
 
     // Reset LocalStorage
     localStorage.clear();
@@ -75,11 +100,28 @@ describe("Speedometer App", () => {
       },
       writable: true,
     });
+
+    mobileOverride = Object.getOwnPropertyDescriptor(
+      navigator,
+      "userAgentData",
+    );
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { mobile: true },
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     resetState();
+
+    if (mobileOverride) {
+      Object.defineProperty(navigator, "userAgentData", mobileOverride);
+    } else {
+      delete (navigator as { userAgentData?: unknown }).userAgentData;
+    }
   });
 
   it("initializes with default values", () => {
@@ -133,6 +175,13 @@ describe("Speedometer App", () => {
 
     // Trigger the callback
     if (watchSuccessCallback) {
+      // First update starts the timer
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+
+      // Advance time by 1s (GPS_WARMUP_MS)
+      vi.advanceTimersByTime(1000);
+
+      // Send it again to trigger the update
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
@@ -147,6 +196,48 @@ describe("Speedometer App", () => {
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
     expect(speedEl.textContent).toBe("36");
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("ignores readings during warmup period", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      // Reading 1 (T=0) -> Ignored
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(speedEl.textContent).toBe(PLACEHOLDER);
+
+      // Reading 2 (T=0.5s) -> Ignored
+      vi.advanceTimersByTime(500);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(speedEl.textContent).toBe(PLACEHOLDER);
+
+      // Reading 3 (T=1.0s) -> Accepted (>= GPS_WARMUP_MS)
+      vi.advanceTimersByTime(500);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      // 10 m/s * 2.23694 = 22.3694 -> 22
+      expect(speedEl.textContent).toBe("22");
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
 
     watchPositionSpy.mockRestore();
   });
@@ -191,7 +282,9 @@ describe("Speedometer App", () => {
     const watchPositionSpy = vi
       .spyOn(navigator.geolocation, "watchPosition")
       .mockImplementation((_, error) => {
-        if (error === null) throw new Error(`error was null`);
+        if (error === null) {
+          throw new Error(`error was null`);
+        }
         watchErrorCallback = error;
         return 1;
       });
@@ -223,8 +316,6 @@ describe("Speedometer App", () => {
 
     // Simulate click
     fireEvent.click(keepScreenOnEl); // changes checked state to true and fires change event
-    // Wait for async handler
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(navigator.wakeLock.request).toHaveBeenCalledWith("screen");
   });
@@ -276,6 +367,13 @@ describe("Speedometer App", () => {
       timestamp: Date.now(),
     };
     if (watchSuccessCallback) {
+      // First one ignored
+      watchSuccessCallback(validPosition as unknown as GeolocationPosition);
+
+      // Advance past warmup
+      vi.advanceTimersByTime(1000);
+
+      // Second one accepted
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
@@ -283,5 +381,49 @@ describe("Speedometer App", () => {
     expect(speedEl.textContent).toBe("22");
 
     watchPositionSpy.mockRestore();
+  });
+
+  it("replaces the UI when the platform can't provide speed", () => {
+    const originalDescriptor = Object.getOwnPropertyDescriptor(
+      (globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates })
+        .GeolocationCoordinates.prototype,
+      "speed",
+    );
+
+    delete (
+      globalThis as { GeolocationCoordinates: typeof GeolocationCoordinates }
+    ).GeolocationCoordinates.prototype.speed;
+
+    init();
+
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Unsupported device");
+    expect(bodyText).toContain("can't report GPS speed");
+
+    // Restore the descriptor for other tests
+    if (originalDescriptor) {
+      Object.defineProperty(
+        (
+          globalThis as {
+            GeolocationCoordinates: typeof GeolocationCoordinates;
+          }
+        ).GeolocationCoordinates.prototype,
+        "speed",
+        originalDescriptor,
+      );
+    }
+  });
+
+  it("replaces the UI on devices that report no GPS hardware", () => {
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { mobile: false },
+      configurable: true,
+    });
+
+    init();
+
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Unsupported device");
+    expect(bodyText).toContain("doesn't have built-in GPS hardware");
   });
 });

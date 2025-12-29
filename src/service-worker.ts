@@ -10,7 +10,7 @@ declare const self: ServiceWorkerGlobalScope;
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.31";
+const CACHE_VERSION = "0.0.32";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS: string[] = [
@@ -62,7 +62,9 @@ async function fetchFollowAndCacheGET(request: Request): Promise<Response> {
   const networkResponse = await fetch(request);
 
   // For non-GET, opaque, or non-OK responses, just return without caching
-  if (request.method !== "GET") return networkResponse;
+  if (request.method !== "GET") {
+    return networkResponse;
+  }
 
   // If the request resulted in a redirect, fetch the final URL explicitly to obtain a non-redirected response
   if (networkResponse.redirected) {
@@ -150,7 +152,9 @@ self.addEventListener("fetch", (event: FetchEvent) => {
   const url = new URL(request.url);
 
   // Only handle same-origin requests
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) {
+    return;
+  }
 
   // Navigation requests: try network first, following redirects; fallback to cached index.html when offline.
   if (request.mode === "navigate") {
@@ -162,7 +166,9 @@ self.addEventListener("fetch", (event: FetchEvent) => {
           return response;
         } catch {
           const cachedIndex = await caches.match("/index.html");
-          if (cachedIndex && !cachedIndex.redirected) return cachedIndex;
+          if (cachedIndex && !cachedIndex.redirected) {
+            return cachedIndex;
+          }
           return new Response("Offline", { status: 503 });
         }
       })(),
@@ -192,7 +198,9 @@ self.addEventListener("fetch", (event: FetchEvent) => {
         // As a last resort for known assets, serve from cache if available
         if (ASSETS.includes(url.pathname)) {
           const fallback = await caches.match(request);
-          if (fallback && !fallback.redirected) return fallback;
+          if (fallback && !fallback.redirected) {
+            return fallback;
+          }
         }
         return new Response("Offline", { status: 503 });
       }
