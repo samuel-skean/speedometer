@@ -362,8 +362,8 @@ export function init(): void {
       }
 
       (vibeWarningEl as unknown as PopoverElement).showPopover();
-      // Calculate immediately
-      updateExitTarget();
+      // Calculate immediately, waiting for layout
+      requestAnimationFrame(() => updateExitTarget());
     } else {
       // Start immediately if not showing popover
       geolocationStarted = true;
@@ -375,6 +375,8 @@ export function init(): void {
       if (toggleEvent.newState === "open") {
         updateExitTarget();
       } else if (toggleEvent.newState === "closed") {
+        updateExitTarget();
+
         // Ensure message is hidden for future opens
         if (locationMsgEl) {
           locationMsgEl.hidden = true;
