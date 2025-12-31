@@ -267,7 +267,32 @@ export function init(): void {
 
   // Vibe warning popover logic
   const vibeWarningEl = document.getElementById("vibe-warning");
+  const infoBtnEl = document.querySelector(".info-btn");
+
   if (vibeWarningEl && "showPopover" in vibeWarningEl) {
+    const updateExitTarget = () => {
+      if (!infoBtnEl) {
+        return;
+      }
+      const iconRect = infoBtnEl.getBoundingClientRect();
+      const iconCenterX = iconRect.left + iconRect.width / 2;
+      const iconCenterY = iconRect.top + iconRect.height / 2;
+
+      // Popover is fixed centered (50vw, 50vh)
+      const viewportCenterX = window.innerWidth / 2;
+      const viewportCenterY = window.innerHeight / 2;
+
+      const deltaX = iconCenterX - viewportCenterX;
+      const deltaY = iconCenterY - viewportCenterY;
+
+      vibeWarningEl.style.setProperty("--exit-x", `${deltaX}px`);
+      vibeWarningEl.style.setProperty("--exit-y", `${deltaY}px`);
+    };
+
+    // Calculate initial target
+    updateExitTarget();
+    window.addEventListener("resize", updateExitTarget);
+
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
     // Only show automatically if not previously shown AND not installed as PWA
     if (!hasShownWarning && !isStandalone()) {
