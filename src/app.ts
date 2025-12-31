@@ -252,6 +252,21 @@ export function init(): void {
 
   updateUnitUI();
 
+  // Vibe warning popover logic
+  const vibeWarningEl = document.getElementById("vibe-warning");
+  if (vibeWarningEl && "showPopover" in vibeWarningEl) {
+    const hasShownWarning = localStorage.getItem("vibe-warning-shown");
+    if (!hasShownWarning) {
+      (vibeWarningEl as any).showPopover();
+    }
+
+    vibeWarningEl.addEventListener("toggle", (event: any) => {
+      if (event.newState === "closed") {
+        localStorage.setItem("vibe-warning-shown", "true");
+      }
+    });
+  }
+
   // Unit toggle
   unitBtn?.addEventListener("click", () => {
     currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
