@@ -215,6 +215,44 @@ function handleError(err: GeolocationPositionError): void {
   }
 }
 
+function startGeolocation(): void {
+  // Request high-accuracy GPS and frequent updates
+  const watchOptions: PositionOptions = {
+    enableHighAccuracy: true,
+    maximumAge: 250, // accept 250ms old cached positions (4Hz)
+    timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
+  };
+
+  if ("geolocation" in navigator) {
+    setStatus("Requesting GPS...");
+    navigator.geolocation.watchPosition(
+      handlePosition,
+      handleError,
+      watchOptions,
+    );
+
+    // Check for stale data every second
+    setInterval(() => {
+      const diff = Date.now() - lastUpdateTimestamp;
+      if (lastUpdateTimestamp > 0 && diff > 5000) {
+        if (warningEl) {
+          warningEl.hidden = false;
+
+          const { value, unit, maxDigits } = formatDuration(diff);
+
+          // Singular/Plural
+          const unitLabel = value === 1 ? unit : `${unit}s`;
+
+          // Construct HTML with reserved width for digits
+          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
+        }
+      }
+    }, 1000);
+  } else {
+    setStatus("Geolocation not supported on this device.");
+  }
+}
+
 export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
@@ -268,6 +306,10 @@ export function init(): void {
   // Vibe warning popover logic
   const vibeWarningEl = document.getElementById("vibe-warning");
   const infoBtnEl = document.querySelector(".info-btn");
+  const locationMsgEl = document.getElementById("vibe-location-msg");
+
+  // Track if geolocation has been requested
+  let geolocationStarted = false;
 
   if (vibeWarningEl && "showPopover" in vibeWarningEl) {
     const updateExitTarget = () => {
@@ -297,20 +339,45 @@ export function init(): void {
     window.addEventListener("resize", updateExitTarget);
 
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
+    const shouldShow = !hasShownWarning && !isStandalone();
+
     // Only show automatically if not previously shown AND not installed as PWA
-    if (!hasShownWarning && !isStandalone()) {
+    if (shouldShow) {
+      // Unhide the location permission warning for the first run
+      if (locationMsgEl) {
+        locationMsgEl.hidden = false;
+      }
+
       (vibeWarningEl as any).showPopover();
       // Calculate immediately
       updateExitTarget();
+    } else {
+      // Start immediately if not showing popover
+      geolocationStarted = true;
+      startGeolocation();
     }
 
     vibeWarningEl.addEventListener("toggle", (event: any) => {
       if (event.newState === "open") {
         updateExitTarget();
       } else if (event.newState === "closed") {
+        // Ensure message is hidden for future opens
+        if (locationMsgEl) {
+          locationMsgEl.hidden = true;
+        }
+
         localStorage.setItem("vibe-warning-shown", "true");
+
+        // Start geolocation if this was the first close
+        if (!geolocationStarted) {
+          geolocationStarted = true;
+          startGeolocation();
+        }
       }
     });
+  } else {
+    // Fallback if popover not supported/found
+    startGeolocation();
   }
 
   // Unit toggle
@@ -332,42 +399,6 @@ export function init(): void {
       handleWakeLock();
     }
   });
-
-  // Request high-accuracy GPS and frequent updates
-  const watchOptions: PositionOptions = {
-    enableHighAccuracy: true,
-    maximumAge: 250, // accept 250ms old cached positions (4Hz)
-    timeout: 60000, // 60s per fix (increased from 10s to avoid reset loops)
-  };
-
-  if ("geolocation" in navigator) {
-    setStatus("Requesting GPS...");
-    navigator.geolocation.watchPosition(
-      handlePosition,
-      handleError,
-      watchOptions,
-    );
-
-    // Check for stale data every second
-    setInterval(() => {
-      const diff = Date.now() - lastUpdateTimestamp;
-      if (lastUpdateTimestamp > 0 && diff > 5000) {
-        if (warningEl) {
-          warningEl.hidden = false;
-
-          const { value, unit, maxDigits } = formatDuration(diff);
-
-          // Singular/Plural
-          const unitLabel = value === 1 ? unit : `${unit}s`;
-
-          // Construct HTML with reserved width for digits
-          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
-        }
-      }
-    }, 1000);
-  } else {
-    setStatus("Geolocation not supported on this device.");
-  }
 
   // Service Worker Registration
   if ("serviceWorker" in navigator && !import.meta.env.DEV) {
