@@ -161,10 +161,10 @@ body {
 
   /* Animation */
   transition:
-    display 0.5s allow-discrete,
-    overlay 0.5s allow-discrete,
-    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 0.5s;
+    display 1.0s allow-discrete,
+    overlay 1.0s allow-discrete,
+    transform 1.0s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 1.0s;
   opacity: 0;
   transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
   transform-origin: center center;
@@ -188,9 +188,9 @@ body {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   transition:
-    display 0.5s allow-discrete,
-    overlay 0.5s allow-discrete,
-    background-color 0.5s;
+    display 1.0s allow-discrete,
+    overlay 1.0s allow-discrete,
+    background-color 1.0s;
 }
 
 .vibe-warning-popover:not(:popover-open)::backdrop {
