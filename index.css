@@ -156,7 +156,7 @@ body {
   color: light-dark(#111, #eee);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   max-width: 300px;
-  text-align: center;
+  text-align: left;
   font-family: inherit;
   display: flex;
   flex-direction: column;
@@ -164,10 +164,17 @@ body {
 
   /* Animation */
   transition:
+<<<<<<< HEAD
     display 0.5s allow-discrete,
     overlay 0.5s allow-discrete,
     transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
     opacity 0.5s;
+=======
+    display 1s allow-discrete,
+    overlay 1s allow-discrete,
+    transform 1s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 1s;
+>>>>>>> c5fbffa (Modified vibe-warning and it's style.)
   opacity: 0;
   transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
   transform-origin: center center;
@@ -191,9 +198,15 @@ body {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   transition:
+<<<<<<< HEAD
     display 0.5s allow-discrete,
     overlay 0.5s allow-discrete,
     background-color 0.5s;
+=======
+    display 1s allow-discrete,
+    overlay 1s allow-discrete,
+    background-color 1s;
+>>>>>>> c5fbffa (Modified vibe-warning and it's style.)
 }
 
 .vibe-warning-popover:not(:popover-open)::backdrop {
@@ -221,6 +234,7 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
+  text-align: center;
 }
 
 button.unit {
