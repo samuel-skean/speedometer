@@ -167,6 +167,7 @@ body {
     opacity 0.5s;
   opacity: 0;
   transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
+  transform-origin: center center;
   margin: auto;
   inset: 0;
 }

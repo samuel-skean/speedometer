@@ -276,20 +276,17 @@ export function init(): void {
       if (!infoBtnEl) {
         return;
       }
-      const iconRect = infoBtnEl.getBoundingClientRect();
+      // Target the SVG for precision, or fallback to button
+      const targetEl = infoBtnEl.querySelector("svg") || infoBtnEl;
+      const iconRect = targetEl.getBoundingClientRect();
       const iconCenterX = iconRect.left + iconRect.width / 2;
       const iconCenterY = iconRect.top + iconRect.height / 2;
 
-      // Try to measure the actual popover center if visible
-      let popoverCenterX = window.innerWidth / 2;
-      let popoverCenterY = window.innerHeight / 2;
-
-      // Check if popover has dimensions (is visible/rendered)
-      const popoverRect = vibeWarningEl.getBoundingClientRect();
-      if (popoverRect.width > 0 && popoverRect.height > 0) {
-        popoverCenterX = popoverRect.left + popoverRect.width / 2;
-        popoverCenterY = popoverRect.top + popoverRect.height / 2;
-      }
+      // Popover is fixed centered (50vw, 50vh) via CSS.
+      // We use viewport dimensions because getBoundingClientRect() on the popover
+      // returns the transformed position during animation, causing a feedback loop.
+      const popoverCenterX = window.innerWidth / 2;
+      const popoverCenterY = window.innerHeight / 2;
 
       const deltaX = iconCenterX - popoverCenterX;
       const deltaY = iconCenterY - popoverCenterY;
