@@ -270,6 +270,8 @@ export function init(): void {
   const infoBtnEl = document.querySelector(".info-btn");
 
   if (vibeWarningEl && "showPopover" in vibeWarningEl) {
+    let rafId: number | null = null;
+
     const updateExitTarget = () => {
       if (!infoBtnEl) {
         return;
@@ -278,29 +280,46 @@ export function init(): void {
       const iconCenterX = iconRect.left + iconRect.width / 2;
       const iconCenterY = iconRect.top + iconRect.height / 2;
 
-      // Popover is fixed centered (50vw, 50vh)
-      const viewportCenterX = window.innerWidth / 2;
-      const viewportCenterY = window.innerHeight / 2;
+      // Try to measure the actual popover center if visible
+      let popoverCenterX = window.innerWidth / 2;
+      let popoverCenterY = window.innerHeight / 2;
 
-      const deltaX = iconCenterX - viewportCenterX;
-      const deltaY = iconCenterY - viewportCenterY;
+      // Check if popover has dimensions (is visible/rendered)
+      const popoverRect = vibeWarningEl.getBoundingClientRect();
+      if (popoverRect.width > 0 && popoverRect.height > 0) {
+        popoverCenterX = popoverRect.left + popoverRect.width / 2;
+        popoverCenterY = popoverRect.top + popoverRect.height / 2;
+      }
+
+      const deltaX = iconCenterX - popoverCenterX;
+      const deltaY = iconCenterY - popoverCenterY;
 
       vibeWarningEl.style.setProperty("--exit-x", `${deltaX}px`);
       vibeWarningEl.style.setProperty("--exit-y", `${deltaY}px`);
+
+      rafId = requestAnimationFrame(updateExitTarget);
     };
 
-    // Calculate initial target
-    updateExitTarget();
-    window.addEventListener("resize", updateExitTarget);
+    const stopTracking = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
 
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
     // Only show automatically if not previously shown AND not installed as PWA
     if (!hasShownWarning && !isStandalone()) {
       (vibeWarningEl as any).showPopover();
+      // Start tracking immediately
+      updateExitTarget();
     }
 
     vibeWarningEl.addEventListener("toggle", (event: any) => {
-      if (event.newState === "closed") {
+      if (event.newState === "open") {
+        updateExitTarget();
+      } else if (event.newState === "closed") {
+        stopTracking();
         localStorage.setItem("vibe-warning-shown", "true");
       }
     });
