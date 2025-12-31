@@ -212,6 +212,13 @@ body {
   opacity: 0.9;
 }
 
+.vibe-warning-actions {
+  margin-top: 32px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .vibe-warning-popover button {
   background: light-dark(#111, #eee);
   color: light-dark(#eee, #111);
