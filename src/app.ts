@@ -24,6 +24,19 @@ const GPS_WARMUP_MS = 1000;
 
 export const PLACEHOLDER = "———";
 
+// Augment HTMLElement to include the Popover API
+interface PopoverElement extends HTMLElement {
+  showPopover(): void;
+  hidePopover(): void;
+  togglePopover(force?: boolean): boolean;
+}
+
+// Define the ToggleEvent interface for the popover API
+interface ToggleEvent extends Event {
+  newState: "open" | "closed";
+  oldState: "open" | "closed";
+}
+
 function showPlaceholder(): void {
   if (speedEl) {
     speedEl.dataset.placeholderVisible = "true";
@@ -348,7 +361,7 @@ export function init(): void {
         locationMsgEl.hidden = false;
       }
 
-      (vibeWarningEl as any).showPopover();
+      (vibeWarningEl as unknown as PopoverElement).showPopover();
       // Calculate immediately
       updateExitTarget();
     } else {
@@ -357,10 +370,11 @@ export function init(): void {
       startGeolocation();
     }
 
-    vibeWarningEl.addEventListener("toggle", (event: any) => {
-      if (event.newState === "open") {
+    vibeWarningEl.addEventListener("toggle", (event: Event) => {
+      const toggleEvent = event as ToggleEvent;
+      if (toggleEvent.newState === "open") {
         updateExitTarget();
-      } else if (event.newState === "closed") {
+      } else if (toggleEvent.newState === "closed") {
         // Ensure message is hidden for future opens
         if (locationMsgEl) {
           locationMsgEl.hidden = true;
