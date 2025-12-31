@@ -126,6 +126,19 @@ function isLikelyGpsDevice(): boolean {
   return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
 }
 
+function isStandalone(): boolean {
+  // Check standard display-mode
+  const isStandaloneMode = window.matchMedia(
+    "(display-mode: standalone)",
+  ).matches;
+
+  // Check iOS legacy
+  // @ts-expect-error - navigator.standalone is non-standard but exists on iOS
+  const isIOSStandalone = navigator.standalone === true;
+
+  return isStandaloneMode || isIOSStandalone;
+}
+
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
     if (keepScreenOnEl) {
@@ -256,7 +269,8 @@ export function init(): void {
   const vibeWarningEl = document.getElementById("vibe-warning");
   if (vibeWarningEl && "showPopover" in vibeWarningEl) {
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
-    if (!hasShownWarning) {
+    // Only show automatically if not previously shown AND not installed as PWA
+    if (!hasShownWarning && !isStandalone()) {
       (vibeWarningEl as any).showPopover();
     }
 
