@@ -270,8 +270,6 @@ export function init(): void {
   const infoBtnEl = document.querySelector(".info-btn");
 
   if (vibeWarningEl && "showPopover" in vibeWarningEl) {
-    let rafId: number | null = null;
-
     const updateExitTarget = () => {
       if (!infoBtnEl) {
         return;
@@ -293,22 +291,16 @@ export function init(): void {
 
       vibeWarningEl.style.setProperty("--exit-x", `${deltaX}px`);
       vibeWarningEl.style.setProperty("--exit-y", `${deltaY}px`);
-
-      rafId = requestAnimationFrame(updateExitTarget);
     };
 
-    const stopTracking = () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    };
+    // Update on resize
+    window.addEventListener("resize", updateExitTarget);
 
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
     // Only show automatically if not previously shown AND not installed as PWA
     if (!hasShownWarning && !isStandalone()) {
       (vibeWarningEl as any).showPopover();
-      // Start tracking immediately
+      // Calculate immediately
       updateExitTarget();
     }
 
@@ -316,7 +308,6 @@ export function init(): void {
       if (event.newState === "open") {
         updateExitTarget();
       } else if (event.newState === "closed") {
-        stopTracking();
         localStorage.setItem("vibe-warning-shown", "true");
       }
     });
