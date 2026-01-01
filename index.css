@@ -202,8 +202,8 @@ body {
 .vibe-warning-popover h2 {
   margin-top: 0;
   margin-bottom: 12px;
-  font-size: inherit;
-  font-weight: inherit;
+  font-size: 1.5em;
+  text-align: center;
 }
 
 .vibe-warning-popover p {
