@@ -113,7 +113,7 @@ body {
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
   pointer-events: auto;
 }
 
@@ -192,7 +192,7 @@ body {
 @starting-style {
   .vibe-warning-popover:popover-open {
     opacity: 0;
-    transform: scale(0.9);
+    transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
   }
 }
 
