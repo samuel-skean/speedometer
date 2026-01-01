@@ -368,6 +368,10 @@ export function init(): void {
       // Calculate immediately, waiting for layout
       requestAnimationFrame(() => updateExitTarget());
     } else {
+      // We are not showing it automatically, so pre-calculate the button position
+      // to ensure manual clicks animate correctly from the button immediately.
+      updateExitTarget();
+
       // Start immediately if not showing popover
       geolocationStarted = true;
       startGeolocation();
