@@ -394,7 +394,18 @@ export function init(): void {
         // Start geolocation if this was the first close
         if (!geolocationStarted) {
           geolocationStarted = true;
-          startGeolocation();
+
+          const onTransitionEnd = (e: TransitionEvent) => {
+            if (e.target === vibeWarningEl) {
+              vibeWarningEl.removeEventListener(
+                "transitionend",
+                onTransitionEnd,
+              );
+              startGeolocation();
+            }
+          };
+
+          vibeWarningEl.addEventListener("transitionend", onTransitionEnd);
         }
       }
     });
