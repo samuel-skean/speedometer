@@ -160,7 +160,6 @@ body {
   font-family: inherit;
   display: flex;
   flex-direction: column;
-  align-items: center;
 
   /* Animation */
   transition:
@@ -203,13 +202,13 @@ body {
 .vibe-warning-popover h2 {
   margin-top: 0;
   margin-bottom: 12px;
-  font-size: 1.5em;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .vibe-warning-popover p {
   margin-bottom: 24px;
   line-height: 1.5;
-  opacity: 0.9;
 }
 
 .vibe-warning-actions {
