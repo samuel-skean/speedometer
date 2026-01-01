@@ -98,9 +98,37 @@ body {
   font-size: 18px;
   opacity: 0.7;
 }
-.github-link {
+.bottom-right-controls {
   grid-column: 3;
   justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.info-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
+.info-btn:hover {
+  opacity: 1;
+}
+
+.info-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+}
+
+.github-link {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -117,6 +145,90 @@ body {
 }
 .github-link:hover {
   opacity: 1;
+}
+
+/* Popover styling */
+.vibe-warning-popover {
+  border: none;
+  border-radius: 12px;
+  padding: 24px;
+  background: light-dark(#fff, #1a1a1a);
+  color: light-dark(#111, #eee);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  text-align: left;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  /* Animation */
+  transition:
+    display 1s allow-discrete,
+    overlay 1s allow-discrete,
+    transform 1s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 1s;
+  opacity: 0;
+  transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
+  transform-origin: center center;
+  margin: auto;
+  inset: 0;
+}
+
+.vibe-warning-popover:popover-open {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+}
+
+@starting-style {
+  .vibe-warning-popover:popover-open {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+.vibe-warning-popover::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  transition:
+    display 1s allow-discrete,
+    overlay 1s allow-discrete,
+    background-color 1s;
+}
+
+.vibe-warning-popover:not(:popover-open)::backdrop {
+  background: rgba(0, 0, 0, 0);
+}
+
+.vibe-warning-popover h2 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.5em;
+}
+
+.vibe-warning-popover p {
+  margin-bottom: 24px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
+
+.vibe-warning-actions {
+  margin-top: 32px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.vibe-warning-popover button {
+  background: light-dark(#111, #eee);
+  color: light-dark(#eee, #111);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
 }
 
 button.unit {
