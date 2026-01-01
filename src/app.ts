@@ -351,6 +351,9 @@ export function init(): void {
     // Update on resize
     window.addEventListener("resize", updateExitTarget);
 
+    // Update before opening when triggered by button
+    infoBtnEl?.addEventListener("click", updateExitTarget);
+
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
     const shouldShow = !hasShownWarning && !isStandalone();
 
