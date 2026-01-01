@@ -351,6 +351,9 @@ export function init(): void {
     // Update on resize
     window.addEventListener("resize", updateExitTarget);
 
+    // Update before opening when triggered by button
+    infoBtnEl?.addEventListener("click", updateExitTarget);
+
     const hasShownWarning = localStorage.getItem("vibe-warning-shown");
     const shouldShow = !hasShownWarning && !isStandalone();
 
@@ -365,6 +368,10 @@ export function init(): void {
       // Calculate immediately, waiting for layout
       requestAnimationFrame(() => updateExitTarget());
     } else {
+      // We are not showing it automatically, so pre-calculate the button position
+      // to ensure manual clicks animate correctly from the button immediately.
+      updateExitTarget();
+
       // Start immediately if not showing popover
       geolocationStarted = true;
       startGeolocation();
@@ -387,7 +394,18 @@ export function init(): void {
         // Start geolocation if this was the first close
         if (!geolocationStarted) {
           geolocationStarted = true;
-          startGeolocation();
+
+          const onTransitionEnd = (e: TransitionEvent) => {
+            if (e.target === vibeWarningEl) {
+              vibeWarningEl.removeEventListener(
+                "transitionend",
+                onTransitionEnd,
+              );
+              startGeolocation();
+            }
+          };
+
+          vibeWarningEl.addEventListener("transitionend", onTransitionEnd);
         }
       }
     });
