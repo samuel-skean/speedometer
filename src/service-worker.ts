@@ -10,7 +10,7 @@ declare const self: ServiceWorkerGlobalScope;
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.49";
+const CACHE_VERSION = "0.0.50";
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS: string[] = [
