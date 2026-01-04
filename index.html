@@ -20,6 +20,8 @@ body {
 }
 html {
   background: light-dark(#f0f0f0, #000);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 body {
   margin: 0;
@@ -38,6 +40,7 @@ body {
   touch-action: none;
   box-sizing: border-box;
 }
+
 .container {
   text-align: center;
   flex: 1;
@@ -170,21 +173,26 @@ body {
 .vibe-warning-popover {
   border: none;
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px;
   background: light-dark(#fff, #1a1a1a);
   color: light-dark(#111, #eee);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  max-width: 300px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 350px;
   text-align: left;
   font-family: inherit;
+  /* Ensure consistent font size */
+  font-size: 16px;
   display: flex;
   flex-direction: column;
 
   /* Animation */
   transition:
-    display 1s allow-discrete,
-    overlay 1s allow-discrete,
-    transform 1s cubic-bezier(0.32, 0.72, 0, 1);
+    display 0.5s allow-discrete,
+    overlay 0.5s allow-discrete,
+    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    max-width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
   transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
   transform-origin: center center;
   margin: auto;
@@ -205,8 +213,8 @@ body {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   transition:
-    display 1s allow-discrete,
-    overlay 1s allow-discrete;
+    display 0.5s allow-discrete,
+    overlay 0.5s allow-discrete;
 }
 
 .vibe-warning-popover:not(:popover-open)::backdrop {
@@ -215,18 +223,18 @@ body {
 
 .vibe-warning-popover h2 {
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
   font-size: 1.5em;
   text-align: center;
 }
 
 .vibe-warning-popover p {
-  margin-bottom: 24px;
-  line-height: 1.5;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
 }
 
 .vibe-warning-actions {
-  margin-top: 32px;
+  margin-top: 16px;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -236,7 +244,7 @@ body {
   background: light-dark(#111, #eee);
   color: light-dark(#eee, #111);
   border: none;
-  padding: 10px 20px;
+  padding: 8px 16px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
@@ -349,6 +357,19 @@ button.unit:active {
   font-size: 18px;
   opacity: 0.8;
 }
+
+@media (orientation: landscape) {
+  .vibe-warning-popover {
+    /* Wider to reduce height in landscape */
+    max-width: min(700px, 100vw - 40px);
+  }
+}
+
+@media (orientation: landscape) and (display-mode: standalone) {
+  .vibe-warning-popover {
+    max-width: 350px;
+  }
+}
     </style>
     <link rel="icon" href="./icons/icon-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -377,7 +398,7 @@ button.unit:active {
       >
         ———
       </div>
-      <button id="unit" type="button" class="unit" aria-label="Toggle Unit">MPH</button>
+      <button id="unit" type="button" class="unit" aria-label="Toggle Unit">mph</button>
     </div>
 
     <!-- Bottom bar with controls/status -->
@@ -439,8 +460,7 @@ button.unit:active {
     <div id="vibe-warning" popover class="vibe-warning-popover">
       <h2>Heads up!</h2>
       <p>This app was mostly vibecoded, and the speed can drop out, though the app should tell you if the speed is more than 5 seconds out of date.</p>
-
-      Also, the app requires location permissions. Your location + speed data never leave your device.
+      <p>Also, the app requires location permissions. Your location + speed data never leave your device.</p>
       <p id="vibe-location-msg" hidden>
           We'll ask for location permissions now.
       </p>

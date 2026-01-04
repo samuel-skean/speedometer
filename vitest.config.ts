@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
+    exclude: ["tests/e2e/**", "node_modules/**"],
     globals: true, // optional: allows using describe, it, expect without import
     setupFiles: [], // Add setup file if needed later
   },

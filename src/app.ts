@@ -312,7 +312,14 @@ export function init(): void {
   warningEl = warningElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
-  currentUnit = (localStorage.getItem("speed-unit") as Unit) || Units.MPH;
+  const storedUnit = localStorage.getItem("speed-unit");
+  if (storedUnit === "MPH") {
+    currentUnit = Units.MPH;
+  } else if (storedUnit === "KPH") {
+    currentUnit = Units.KPH;
+  } else {
+    currentUnit = (storedUnit as Unit) || Units.MPH;
+  }
 
   updateUnitUI();
 
