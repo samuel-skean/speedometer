@@ -20,6 +20,8 @@ body {
 }
 html {
   background: light-dark(#f0f0f0, #000);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 body {
   margin: 0;
@@ -170,7 +172,7 @@ body {
 .vibe-warning-popover {
   border: none;
   border-radius: 12px;
-  padding: 24px;
+  padding: 20px;
   background: light-dark(#fff, #1a1a1a);
   color: light-dark(#111, #eee);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -223,18 +225,18 @@ body {
 
 .vibe-warning-popover h2 {
   margin-top: 0;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: 1.5em;
   text-align: center;
 }
 
 .vibe-warning-popover p {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   line-height: 1.5;
 }
 
 .vibe-warning-actions {
-  margin-top: 32px;
+  margin-top: 24px;
   width: 100%;
   display: flex;
   justify-content: center;
@@ -362,38 +364,12 @@ button.unit:active {
   .vibe-warning-popover {
     /* Wider to reduce height in landscape */
     max-width: min(700px, 100vw - 40px);
-    padding: 20px;
-  }
-
-  .vibe-warning-popover h2 {
-    margin-bottom: 12px;
-  }
-
-  .vibe-warning-popover p {
-    margin-bottom: 12px;
-  }
-
-  .vibe-warning-actions {
-    margin-top: 20px;
   }
 }
 
 @media (orientation: landscape) and (display-mode: standalone) {
   .vibe-warning-popover {
     max-width: 350px;
-    padding: 24px;
-  }
-
-  .vibe-warning-popover h2 {
-    margin-bottom: 12px;
-  }
-
-  .vibe-warning-popover p {
-    margin-bottom: 24px;
-  }
-
-  .vibe-warning-actions {
-    margin-top: 32px;
   }
 }
     </style>
