@@ -14,15 +14,20 @@ const MPS_TO_KPH = 3.6;
  * Rounds to the nearest integer.
  * Returns 0 if input is invalid (NaN, Infinity, negative).
  */
-export function convertSpeed(metersPerSecond: number, unit: Unit): number {
+export function convertSpeed(
+  metersPerSecond: number,
+  unit: Unit | string,
+): number {
   if (!Number.isFinite(metersPerSecond)) {
     return 0;
   }
 
   let value: number;
-  if (unit === Units.MPH) {
+  // Handle "mph" (Unit) and "MPH" (Legacy string)
+  if (unit === Units.MPH || unit === "MPH") {
     value = metersPerSecond * MPS_TO_MPH;
   } else {
+    // Default to KPH for "km/h" or "KPH" or unknown
     value = metersPerSecond * MPS_TO_KPH;
   }
 

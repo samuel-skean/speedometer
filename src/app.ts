@@ -46,7 +46,14 @@ function showPlaceholder(): void {
 
 function updateUnitUI(): void {
   if (unitBtn) {
-    unitBtn.textContent = currentUnit;
+    // Ensure display text is lowercase/correct even if storage has legacy "MPH"/"KPH"
+    if (currentUnit === "MPH") {
+      unitBtn.textContent = "mph";
+    } else if (currentUnit === "KPH") {
+      unitBtn.textContent = "km/h";
+    } else {
+      unitBtn.textContent = currentUnit;
+    }
   }
 }
 
@@ -313,14 +320,7 @@ export function init(): void {
 
   // Initialize state from local storage or default
   const storedUnit = localStorage.getItem("speed-unit");
-  // Legacy migration: some versions might store "MPH" or "KPH"
-  if (storedUnit === "MPH") {
-    currentUnit = Units.MPH;
-  } else if (storedUnit === "KPH") {
-    currentUnit = Units.KPH;
-  } else {
-    currentUnit = (storedUnit as Unit) || Units.MPH;
-  }
+  currentUnit = (storedUnit as Unit) || Units.MPH;
 
   updateUnitUI();
 
@@ -424,7 +424,9 @@ export function init(): void {
 
   // Unit toggle
   unitBtn?.addEventListener("click", () => {
-    currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
+    // Toggle between standard units (clearing legacy values if present)
+    const isMph = currentUnit === Units.MPH || currentUnit === "MPH";
+    currentUnit = isMph ? Units.KPH : Units.MPH;
     localStorage.setItem("speed-unit", currentUnit);
     updateUnitUI();
     // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
