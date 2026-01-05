@@ -207,8 +207,19 @@ function handlePosition(pos: GeolocationPosition): void {
   // Status/accuracy
   if (typeof accuracy === "number" && Number.isFinite(accuracy)) {
     setStatus(`Accuracy: ±${Math.round(accuracy)}m`);
+    if (statusEl) {
+      statusEl.classList.remove("status-warning", "status-danger");
+      if (accuracy > 100) {
+        statusEl.classList.add("status-danger");
+      } else if (accuracy > 20) {
+        statusEl.classList.add("status-warning");
+      }
+    }
   } else {
     setStatus("GPS fix acquired");
+    if (statusEl) {
+      statusEl.classList.remove("status-warning", "status-danger");
+    }
   }
 }
 
@@ -251,13 +262,85 @@ function startGeolocation(): void {
         if (warningEl) {
           warningEl.hidden = false;
 
-          const { value, unit, maxDigits } = formatDuration(diff);
+          const parts = formatDuration(diff);
 
-          // Singular/Plural
-          const unitLabel = value === 1 ? unit : `${unit}s`;
+          // Construct HTML parts
+          const htmlParts = parts.map((part) => {
+            // Add padding for fixed width if needed, but min-width usually handles it if monospaced or tnum
+            // For >1 component, we generally want leading zeros if it's the second component?
+            // "5m 30s" -> "10m 05s" to keep alignment fixed?
+            // The prompt says "Make sure the alignment of all the text remains completely fixed as it ticks up"
+            // If we have "5m 30s", and next is "5m 31s", width is same.
+            // "9m 59s" -> "10m 00s"
+            // We need to ensure each number field reserves enough space.
+            // Using `min-width: ${part.maxDigits}ch` helps.
+            // Also, for second component, usually we pad with '0' for alignment in digital clocks,
+            // e.g. 1m 05s.
+            // `formatDuration` logic logic returns value as number.
+            // Let's modify display logic to pad with 0 if it is not the first component?
+            // User requirement: "starting with the minutes in the same widget that already exists".
+            // "Show the stale data stopwatch in two components starting with the minutes"
+            // "It should show how many minutes and seconds have passed..."
+            // I'll stick to min-width for now. If visual alignment needs leading zero for second component, I'll add it.
+            // The user emphasized "completely fixed as it ticks up".
+            // If I go from 59s -> 1m 00s.
+            // 59s is "59 seconds". 1m 00s is "1 minute 0 seconds" or "1m 0s"?
+            // Existing logic used full words "seconds", "minute".
+            // Requested logic: "how many minutes and seconds have passed".
+            // Maybe it implies "5m 30s" or "5 minutes 30 seconds"?
+            // "starting with the minutes... It should show how many minutes and seconds have passed"
+            // Given the existing UI uses full words "seconds" etc., and request says "starting with the minutes in the same widget that already exists",
+            // I should probably keep the style somewhat consistent but maybe shorter if it gets too long?
+            // But "5m 30s" is usually abbreviated.
+            // Let's look at the implementation plan again. "Minutes and seconds (e.g., '5m 30s')".
+            // I will use abbreviated units for multi-component display to fit better?
+            // Or full words? "5 minutes 30 seconds" is very long.
+            // The example in my thought process was "5m 30s".
+            // Let's assume full words first as per current widget style, unless it breaks layout.
+            // Current widget: "Speed data is <span ...>5</span> seconds old"
+            // New widget: "Speed data is <span ...>5</span> minutes <span ...>30</span> seconds old"
+            // This is getting long.
+            // Maybe I should abbreviate if > 1 minute?
+            // "Speed data is 5m 30s old"
+            // Let's try abbreviated units for the multi-part ones, and keep full word for < 1 minute if desired,
+            // or just switch to abbreviated for everything for consistency?
+            // The prompt asks for "how many minutes and seconds have passed", not explicitly "m" and "s".
+            // However, "starting with the minutes" -> "5m 30s" is a very common stopwatch format.
+            // Also "Make sure the alignment... remains completely fixed".
+            // Shorter units help with fixed alignment on small screens.
+            // I'll use abbreviations for multi-component.
+            // For single component (seconds), I'll stick to full word or abbreviation?
+            // "Speed data is 5s old" vs "Speed data is 5 seconds old".
+            // I will stick to full words for single component to minimize change for < 1 min,
+            // and use abbreviations for multi-component to save space.
 
-          // Construct HTML with reserved width for digits
-          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
+            const isMultiPart = parts.length > 1;
+            const label = isMultiPart
+              ? part.unit[0]
+              : part.value === 1
+                ? part.unit
+                : `${part.unit}s`;
+
+            // For multi-part, usually we want "1m 05s" instead of "1m 5s" for alignment?
+            // Or just rely on tabular nums?
+            // If I have 1m 9s -> 1m 10s. Width changes if I don't pad or reserve space.
+            // 1ch vs 2ch.
+            // logic `maxDigits` is 2 for seconds/minutes.
+            // So I should force `min-width` of 2ch.
+            // And maybe pad with zero visually?
+            // "05" vs " 5".
+            // I'll use `padStart(2, '0')` for the second component values (seconds, minutes in hours, etc).
+            // Actually, `formatDuration` returns numbers.
+
+            let displayValue = part.value.toString();
+            if (isMultiPart && part !== parts[0]) {
+              displayValue = displayValue.padStart(part.maxDigits, "0");
+            }
+
+            return `<span class="warning-digits" style="min-width: ${part.maxDigits}ch">${displayValue}</span> ${label}`;
+          });
+
+          warningEl.innerHTML = `Speed data is ${htmlParts.join(" ")} old`;
         }
       }
     }, 1000);

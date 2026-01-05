@@ -119,6 +119,17 @@ body {
 .status {
   font-size: 18px;
   opacity: 0.7;
+  transition: color 0.3s;
+}
+.status-warning {
+  color: light-dark(#e65100, #ffeb3b); /* Darker Orange on light, Yellow on dark */
+  opacity: 1;
+  font-weight: bold;
+}
+.status-danger {
+  color: light-dark(#b71c1c, #ff5252); /* Dark Red on light, Bright Red on dark */
+  opacity: 1;
+  font-weight: bold;
 }
 .bottom-right-controls {
   grid-column: 3;

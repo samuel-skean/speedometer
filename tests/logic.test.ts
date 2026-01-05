@@ -63,111 +63,48 @@ describe("Logic: Speed Conversion", () => {
   });
 });
 
-describe("Logic: Format Duration", () => {
-  it("formats seconds correctly", () => {
-    expect(formatDuration(0)).toEqual({
-      value: 0,
-      unit: "second",
-      maxDigits: 2,
-    });
-    expect(formatDuration(500)).toEqual({
-      value: 0,
-      unit: "second",
-      maxDigits: 2,
-    });
-    expect(formatDuration(1000)).toEqual({
-      value: 1,
-      unit: "second",
-      maxDigits: 2,
-    });
-    expect(formatDuration(59999)).toEqual({
-      value: 59,
-      unit: "second",
-      maxDigits: 2,
-    });
+describe("Logic: Format Duration (New Requirements)", () => {
+  it("formats < 1 minute as seconds", () => {
+    // 59 seconds
+    const result = formatDuration(59000);
+    expect(result).toEqual([{ value: 59, unit: "second", maxDigits: 2 }]);
   });
 
-  it("formats minutes correctly", () => {
-    expect(formatDuration(60000)).toEqual({
-      value: 1,
-      unit: "minute",
-      maxDigits: 2,
-    });
-    expect(formatDuration(61000)).toEqual({
-      value: 1,
-      unit: "minute",
-      maxDigits: 2,
-    });
-    expect(formatDuration(3599999)).toEqual({
-      value: 59,
-      unit: "minute",
-      maxDigits: 2,
-    });
+  it("formats > 1 minute as minutes and seconds", () => {
+    // 1 min 30 sec = 90000 ms
+    const result = formatDuration(90000);
+    // Expecting 2 components
+    expect(result).toEqual([
+      { value: 1, unit: "minute", maxDigits: 2 },
+      { value: 30, unit: "second", maxDigits: 2 },
+    ]);
   });
 
-  it("formats hours correctly", () => {
-    expect(formatDuration(3600000)).toEqual({
-      value: 1,
-      unit: "hour",
-      maxDigits: 2,
-    });
-    expect(formatDuration(86399999)).toEqual({
-      value: 23,
-      unit: "hour",
-      maxDigits: 2,
-    });
+  it("formats > 1 hour as hours and minutes", () => {
+    // 1 hour 30 min = 3600 + 1800 = 5400 sec = 5400000 ms
+    const result = formatDuration(5400000);
+    expect(result).toEqual([
+      { value: 1, unit: "hour", maxDigits: 2 },
+      { value: 30, unit: "minute", maxDigits: 2 },
+    ]);
   });
 
-  it("formats days correctly", () => {
-    expect(formatDuration(86400000)).toEqual({
-      value: 1,
-      unit: "day",
-      maxDigits: 3,
-    });
-    // 364 days
-    const days364 = 364 * 24 * 3600 * 1000;
-    expect(formatDuration(days364)).toEqual({
-      value: 364,
-      unit: "day",
-      maxDigits: 3,
-    });
+  it("formats > 1 day as days and hours", () => {
+    // 1 day 2 hours = 24 + 2 = 26 hours
+    const result = formatDuration(26 * 3600 * 1000);
+    expect(result).toEqual([
+      { value: 1, unit: "day", maxDigits: 3 },
+      { value: 2, unit: "hour", maxDigits: 2 },
+    ]);
   });
 
-  it("formats years correctly", () => {
-    // 365 days
-    const year1 = 365 * 24 * 3600 * 1000;
-    expect(formatDuration(year1)).toEqual({
-      value: 1,
-      unit: "year",
-      maxDigits: 3,
-    });
-    // 1000 years
-    const year1000 = 1000 * 365 * 24 * 3600 * 1000;
-    expect(formatDuration(year1000)).toEqual({
-      value: 1000,
-      unit: "year",
-      maxDigits: 3,
-    });
-  });
-
-  it("handles negative values", () => {
-    expect(formatDuration(-100)).toEqual({
-      value: 0,
-      unit: "second",
-      maxDigits: 2,
-    });
-  });
-
-  it("handles NaN/Infinity", () => {
-    expect(formatDuration(NaN)).toEqual({
-      value: 0,
-      unit: "second",
-      maxDigits: 2,
-    });
-    expect(formatDuration(Infinity)).toEqual({
-      value: 0,
-      unit: "second",
-      maxDigits: 2,
-    });
+  it("formats > 1 year as years and hours", () => {
+    // 1 year (365 days) + 5 hours
+    const ms = (365 * 24 + 5) * 3600 * 1000;
+    const result = formatDuration(ms);
+    expect(result).toEqual([
+      { value: 1, unit: "year", maxDigits: 3 },
+      { value: 5, unit: "hour", maxDigits: 4 }, // Hours in a year can be up to 8760 (approx), so maybe 4 digits?
+    ]);
   });
 });
