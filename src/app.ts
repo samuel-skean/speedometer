@@ -247,21 +247,27 @@ async function handleWakeLock(): Promise<void> {
 
 function handlePosition(pos: GeolocationPosition): void {
   const { speed, accuracy } = pos.coords;
+  const now = Date.now();
+  const fixTimestamp =
+    typeof pos.timestamp === "number" ? Math.max(pos.timestamp, now) : now;
+
+  // Track freshness on every GPS fix, even if speed is missing
+  lastUpdateTimestamp = fixTimestamp;
+
+  if (warningEl && Date.now() - lastUpdateTimestamp <= 5000) {
+    warningEl.hidden = true;
+  }
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    const now = Date.now();
     if (firstSpeedTimestamp === null) {
-      firstSpeedTimestamp = now;
+      firstSpeedTimestamp = fixTimestamp;
     }
 
-    // Track freshness even during warmup so the stale timer stays accurate
-    lastUpdateTimestamp = now;
-
-    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
+    if (fixTimestamp - firstSpeedTimestamp >= GPS_WARMUP_MS) {
       lastSpeedMs = speed;
       renderSpeed(speed);
-      lastUpdateTimestamp = now;
+      lastUpdateTimestamp = fixTimestamp;
       if (warningEl) {
         warningEl.hidden = true;
       }

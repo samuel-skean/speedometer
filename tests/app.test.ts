@@ -238,6 +238,14 @@ describe("Speedometer App", () => {
     );
     expect(numbers).toEqual(["00", "06"]);
 
+    // Advance more time to ensure the counter keeps ticking forward
+    vi.advanceTimersByTime(4000);
+    const updatedNumbers = Array.from(
+      warningEl.querySelectorAll(".warning-number"),
+      (el) => el.textContent,
+    );
+    expect(updatedNumbers).toEqual(["00", "10"]);
+
     const labels = Array.from(
       warningEl.querySelectorAll(".warning-label"),
       (el) => el.textContent,
@@ -284,6 +292,58 @@ describe("Speedometer App", () => {
     expect(warningEl.hidden).toBe(true);
 
     vi.advanceTimersByTime(1500);
+    expect(warningEl.hidden).toBe(true);
+  });
+
+  it("refreshes freshness timestamps even when speed is missing", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const mockPosition = (speedValue: number | null, ts: number) => ({
+      coords: {
+        speed: speedValue,
+        accuracy: 9,
+      },
+      timestamp: ts,
+    });
+
+    if (!watchSuccessCallback) {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    // Warm the timer with a valid reading so the warning can appear later
+    const baseTimestamp = Date.now();
+    watchSuccessCallback(
+      mockPosition(10, baseTimestamp) as unknown as GeolocationPosition,
+    );
+    vi.advanceTimersByTime(1000);
+    watchSuccessCallback(
+      mockPosition(10, baseTimestamp + 1000) as unknown as GeolocationPosition,
+    );
+
+    // Let the data go stale
+    vi.advanceTimersByTime(6500);
+    expect(warningEl.hidden).toBe(false);
+
+    // A new fix without speed should still refresh recency and hide the banner
+    watchSuccessCallback(
+      mockPosition(
+        null,
+        baseTimestamp + 8000,
+      ) as unknown as GeolocationPosition,
+    );
+    expect(warningEl.hidden).toBe(true);
+
+    // And it should stay hidden for the next few ticks
+    vi.advanceTimersByTime(3000);
     expect(warningEl.hidden).toBe(true);
   });
 
