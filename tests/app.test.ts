@@ -247,6 +247,46 @@ describe("Speedometer App", () => {
     watchPositionSpy.mockRestore();
   });
 
+  it("hides the stale warning again after a fresh reading", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 9,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (!watchSuccessCallback) {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    vi.advanceTimersByTime(1000);
+    watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+
+    // Let the timer declare it stale
+    vi.advanceTimersByTime(6500);
+    expect(warningEl.hidden).toBe(false);
+
+    // A new fix should reset the timer and hide the warning
+    watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    expect(warningEl.hidden).toBe(true);
+
+    vi.advanceTimersByTime(1500);
+    expect(warningEl.hidden).toBe(true);
+  });
+
   it("ignores readings during warmup period", () => {
     let watchSuccessCallback: PositionCallback | undefined;
 

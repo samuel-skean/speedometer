@@ -255,6 +255,9 @@ function handlePosition(pos: GeolocationPosition): void {
       firstSpeedTimestamp = now;
     }
 
+    // Track freshness even during warmup so the stale timer stays accurate
+    lastUpdateTimestamp = now;
+
     if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
       lastSpeedMs = speed;
       renderSpeed(speed);
@@ -319,40 +322,46 @@ function startGeolocation(): void {
 
     // Check for stale data every second
     setInterval(() => {
-      const diff = Date.now() - lastUpdateTimestamp;
-      if (lastUpdateTimestamp > 0 && diff > 5000) {
-        if (warningEl) {
-          warningEl.hidden = false;
-          const {
-            primaryValue,
-            secondaryValue,
-            primaryLabel,
-            secondaryLabel,
-            primaryWidth,
-            secondaryWidth,
-          } = formatStaleStopwatch(diff);
-
-          const pluralize = (value: number, label: string) =>
-            value === 1 ? label : `${label}s`;
-
-          warningEl.innerHTML = `
-            <span class="warning-content">
-              Speed data is
-              <span class="warning-counter">
-                <span class="warning-part">
-                  <span class="warning-number" style="min-width: ${primaryWidth}ch">${String(primaryValue).padStart(primaryWidth, "0")}</span>
-                  <span class="warning-label">${pluralize(primaryValue, primaryLabel)}</span>
-                </span>
-                <span class="warning-part">
-                  <span class="warning-number" style="min-width: ${secondaryWidth}ch">${String(secondaryValue).padStart(secondaryWidth, "0")}</span>
-                  <span class="warning-label">${pluralize(secondaryValue, secondaryLabel)}</span>
-                </span>
-              </span>
-              old
-            </span>
-          `;
-        }
+      if (!warningEl) {
+        return;
       }
+
+      const diff = Date.now() - lastUpdateTimestamp;
+
+      if (lastUpdateTimestamp === 0 || diff <= 5000) {
+        warningEl.hidden = true;
+        return;
+      }
+
+      warningEl.hidden = false;
+      const {
+        primaryValue,
+        secondaryValue,
+        primaryLabel,
+        secondaryLabel,
+        primaryWidth,
+        secondaryWidth,
+      } = formatStaleStopwatch(diff);
+
+      const pluralize = (value: number, label: string) =>
+        value === 1 ? label : `${label}s`;
+
+      warningEl.innerHTML = `
+        <span class="warning-content">
+          Speed data is
+          <span class="warning-counter">
+            <span class="warning-part">
+              <span class="warning-number" style="min-width: ${primaryWidth}ch">${String(primaryValue).padStart(primaryWidth, "0")}</span>
+              <span class="warning-label">${pluralize(primaryValue, primaryLabel)}</span>
+            </span>
+            <span class="warning-part">
+              <span class="warning-number" style="min-width: ${secondaryWidth}ch">${String(secondaryValue).padStart(secondaryWidth, "0")}</span>
+              <span class="warning-label">${pluralize(secondaryValue, secondaryLabel)}</span>
+            </span>
+          </span>
+          old
+        </span>
+      `;
     }, 1000);
   } else {
     setStatus("Geolocation not supported on this device.");
