@@ -89,6 +89,65 @@ body {
   color: light-dark(#111, #eee);
 }
 
+.age-card {
+  margin-top: 12px;
+  width: min(440px, calc(100% - 32px));
+  background: light-dark(#fff, #0f0f0f);
+  color: inherit;
+  border-radius: 16px;
+  border: 1px solid light-dark(#e0e0e0, #1f1f1f);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  box-sizing: border-box;
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.age-title {
+  margin: 0;
+  text-align: left;
+  letter-spacing: 0.02em;
+  font-size: 16px;
+  opacity: 0.75;
+}
+
+.age-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.age-segment {
+  background: light-dark(#f7f7f7, #151515);
+  border: 1px solid light-dark(#e6e6e6, #222);
+  border-radius: 12px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.age-value {
+  font-size: clamp(36px, 10vw, 64px);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: 0.02em;
+  text-align: right;
+  min-width: 4.5ch;
+}
+
+.age-label {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.75;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
 @media (orientation: landscape) {
   .container {
     justify-content: flex-start;
@@ -118,7 +177,29 @@ body {
 }
 .status {
   font-size: 18px;
-  opacity: 0.7;
+  opacity: 0.85;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.08));
+  border: 1px solid light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.12));
+  backdrop-filter: blur(4px);
+  justify-self: center;
+  color: inherit;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+.status[data-accuracy="warn"] {
+  background: light-dark(#fff3bf, #4b3200);
+  color: light-dark(#2f1a00, #ffe8a3);
+  border-color: light-dark(#f2c94c, #f2c94c33);
+  opacity: 1;
+}
+
+.status[data-accuracy="bad"] {
+  background: light-dark(#ffd6d6, #4b0000);
+  color: light-dark(#2a0000, #ffdede);
+  border-color: light-dark(#e06666, #ff8a8a33);
+  opacity: 1;
 }
 .bottom-right-controls {
   grid-column: 3;
@@ -397,6 +478,19 @@ button.unit:active {
         data-placeholder-visible="true"
       >
         ———
+      </div>
+      <div id="age-card" class="age-card" hidden>
+        <p class="age-title">Data age</p>
+        <div class="age-row">
+          <div class="age-segment">
+            <div id="age-primary-value" class="age-value">00</div>
+            <div id="age-primary-label" class="age-label">minutes</div>
+          </div>
+          <div class="age-segment">
+            <div id="age-secondary-value" class="age-value">00</div>
+            <div id="age-secondary-label" class="age-label">seconds</div>
+          </div>
+        </div>
       </div>
       <button id="unit" type="button" class="unit" aria-label="Toggle Unit">mph</button>
     </div>

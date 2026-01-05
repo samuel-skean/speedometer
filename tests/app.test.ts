@@ -23,6 +23,12 @@ describe("Speedometer App", () => {
             data-placeholder="${PLACEHOLDER}"
             data-placeholder-visible="true"
           >${PLACEHOLDER}</div>
+          <div id="age-card" hidden>
+            <div id="age-primary-value"></div>
+            <div id="age-primary-label"></div>
+            <div id="age-secondary-value"></div>
+            <div id="age-secondary-label"></div>
+          </div>
           <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
       </div>
       <div class="bottom-bar">
