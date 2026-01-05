@@ -255,6 +255,43 @@ describe("Speedometer App", () => {
     watchPositionSpy.mockRestore();
   });
 
+  it("keeps the stale warning hidden until the first GPS fix arrives", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    // Without any fixes, the warning should stay hidden even after time passes
+    vi.advanceTimersByTime(10000);
+    expect(warningEl.hidden).toBe(true);
+
+    const mockPosition = {
+      coords: {
+        speed: 12,
+        accuracy: 6,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    // After a fix, the timer should start aging and eventually show the warning
+    vi.advanceTimersByTime(6500);
+    expect(warningEl.hidden).toBe(false);
+
+    watchPositionSpy.mockRestore();
+  });
+
   it("hides the stale warning again after a fresh reading", () => {
     let watchSuccessCallback: PositionCallback | undefined;
 

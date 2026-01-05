@@ -19,6 +19,7 @@ let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 let firstSpeedTimestamp: number | null = null;
+let hasFreshFix = false;
 
 const GPS_WARMUP_MS = 1000;
 
@@ -253,6 +254,7 @@ function handlePosition(pos: GeolocationPosition): void {
       ? Math.max(pos.timestamp, now)
       : now;
 
+  hasFreshFix = true;
   // Track freshness on every GPS fix, even if speed is missing
   lastUpdateTimestamp = fixTimestamp;
 
@@ -336,7 +338,7 @@ function startGeolocation(): void {
 
       const diff = Date.now() - lastUpdateTimestamp;
 
-      if (lastUpdateTimestamp === 0 || diff <= 5000) {
+      if (!hasFreshFix || lastUpdateTimestamp === 0 || diff <= 5000) {
         warningEl.hidden = true;
         return;
       }
@@ -381,6 +383,7 @@ export function resetState(): void {
   lastUpdateTimestamp = 0;
   wakeLock = null;
   firstSpeedTimestamp = null;
+  hasFreshFix = false;
 }
 
 export function init(): void {
