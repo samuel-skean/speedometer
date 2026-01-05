@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-export {};
 declare const self: ServiceWorkerGlobalScope;
 
 /**
@@ -10,7 +9,9 @@ declare const self: ServiceWorkerGlobalScope;
  * - the final URL after redirects (if same-origin).
  */
 
-const CACHE_VERSION = "0.0.64";
+import packageJson from "../package.json";
+
+const CACHE_VERSION = packageJson.version;
 const CACHE_NAME = `speedometer-${CACHE_VERSION}`;
 
 const ASSETS: string[] = [
