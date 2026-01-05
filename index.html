@@ -116,8 +116,14 @@ button.landscape-unit {
   }
 
   .speed {
-    /* Maximize speed size in landscape */
-    font-size: min(50vw, 70vh);
+    /*
+      Maximize speed size in landscape.
+      Constraint 1: Height. Leave room for warning bar (top) and controls (bottom). ~60svh.
+      Constraint 2: Width. Must fit 3 digits (3em width).
+      Safe area width is approx 88-90vw on notched phones.
+      3 * fontSize <= 85vw => fontSize <= 28vw.
+    */
+    font-size: min(28vw, 60svh);
     line-height: 0.8;
     margin: auto;
   }
@@ -162,11 +168,12 @@ button.landscape-unit {
 
   .warning {
     /* Shrink warning in landscape */
-    font-size: 0.8em;
-    padding: max(2px, env(safe-area-inset-top))
+    font-size: 12px;
+    padding: max(0px, env(safe-area-inset-top))
       max(10px, env(safe-area-inset-right)) 2px
       max(10px, env(safe-area-inset-left));
     line-height: 1.1;
+    opacity: 0.9;
   }
 }
 
