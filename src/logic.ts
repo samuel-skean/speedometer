@@ -39,33 +39,57 @@ export interface FormattedDuration {
   maxDigits: number;
 }
 
-export function formatDuration(ms: number): FormattedDuration {
+export function formatDuration(ms: number): FormattedDuration[] {
   // Handle edge cases
   if (!Number.isFinite(ms) || ms < 0) {
-    return { value: 0, unit: "second", maxDigits: 2 };
+    return [{ value: 0, unit: "second", maxDigits: 2 }];
   }
 
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) {
-    return { value: seconds, unit: "second", maxDigits: 2 };
+  const totalSeconds = Math.floor(ms / 1000);
+  if (totalSeconds < 60) {
+    return [{ value: totalSeconds, unit: "second", maxDigits: 2 }];
   }
 
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return { value: minutes, unit: "minute", maxDigits: 2 };
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    const seconds = totalSeconds % 60;
+    return [
+      { value: totalMinutes, unit: "minute", maxDigits: 2 },
+      { value: seconds, unit: "second", maxDigits: 2 },
+    ];
   }
 
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) {
-    return { value: hours, unit: "hour", maxDigits: 2 };
+  const totalHours = Math.floor(totalMinutes / 60);
+  if (totalHours < 24) {
+    const minutes = totalMinutes % 60;
+    return [
+      { value: totalHours, unit: "hour", maxDigits: 2 },
+      { value: minutes, unit: "minute", maxDigits: 2 },
+    ];
   }
 
-  const days = Math.floor(hours / 24);
-  if (days < 365) {
-    return { value: days, unit: "day", maxDigits: 3 };
+  const totalDays = Math.floor(totalHours / 24);
+  if (totalDays < 365) {
+    const hours = totalHours % 24;
+    return [
+      { value: totalDays, unit: "day", maxDigits: 3 },
+      { value: hours, unit: "hour", maxDigits: 2 },
+    ];
   }
 
-  const years = Math.floor(days / 365);
+  const years = Math.floor(totalDays / 365);
+  // Calculate remaining hours excluding full years
+  // 1 year = 365 days.
+  // Note: This logic assumes 1 year = 365 days exactly (ignoring leap years for simplicity as per common stopwatch logic unless specified)
+  const remainingDays = totalDays % 365;
+  const remainingHoursFromDays = remainingDays * 24;
+  const hoursFromPartialDay = totalHours % 24;
+  const totalRemainingHours = remainingHoursFromDays + hoursFromPartialDay;
+
   // Default to 3 digits for years (up to 999 years)
-  return { value: years, unit: "year", maxDigits: 3 };
+  // Max digits for hours in a year: 364 * 24 + 23 = 8759 -> 4 digits
+  return [
+    { value: years, unit: "year", maxDigits: 3 },
+    { value: totalRemainingHours, unit: "hour", maxDigits: 4 },
+  ];
 }

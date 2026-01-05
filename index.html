@@ -119,6 +119,19 @@ body {
 .status {
   font-size: 18px;
   opacity: 0.7;
+  transition: background-color 0.3s, color 0.3s;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.status-warning {
+  background-color: light-dark(#ffcc00, #fbc02d);
+  color: #000;
+  opacity: 1;
+}
+.status-danger {
+  background-color: light-dark(#ff3b30, #ff453a);
+  color: #fff;
+  opacity: 1;
 }
 .bottom-right-controls {
   grid-column: 3;
