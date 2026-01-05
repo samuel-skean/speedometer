@@ -9,7 +9,7 @@ import { convertSpeed, formatDuration, type Unit, Units } from "./logic";
 // Define DOM elements
 let speedEl: HTMLDivElement;
 let statusEl: HTMLDivElement;
-let unitBtn: HTMLButtonElement;
+let unitBtns: NodeListOf<HTMLButtonElement>;
 let keepScreenOnEl: HTMLInputElement;
 let warningEl: HTMLDivElement;
 
@@ -45,8 +45,10 @@ function showPlaceholder(): void {
 }
 
 function updateUnitUI(): void {
-  if (unitBtn) {
-    unitBtn.textContent = currentUnit;
+  if (unitBtns) {
+    for (const btn of unitBtns) {
+      btn.textContent = currentUnit;
+    }
   }
 }
 
@@ -376,11 +378,10 @@ export function init(): void {
   }
   statusEl = statusElNullable as HTMLDivElement;
 
-  const unitBtnNullable = document.getElementById("unit");
-  if (!unitBtnNullable) {
-    throw new Error("Unit button not found");
+  unitBtns = document.querySelectorAll("button.unit");
+  if (unitBtns.length === 0) {
+    throw new Error("Unit buttons not found");
   }
-  unitBtn = unitBtnNullable as HTMLButtonElement;
 
   const keepScreenOnElNullable = document.getElementById("keepScreenOn");
   if (!keepScreenOnElNullable) {
@@ -505,15 +506,17 @@ export function init(): void {
   }
 
   // Unit toggle
-  unitBtn?.addEventListener("click", () => {
-    currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
-    localStorage.setItem("speed-unit", currentUnit);
-    updateUnitUI();
-    // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
-    if (lastSpeedMs !== null) {
-      renderSpeed(lastSpeedMs);
-    }
-  });
+  for (const btn of unitBtns) {
+    btn.addEventListener("click", () => {
+      currentUnit = currentUnit === Units.MPH ? Units.KPH : Units.MPH;
+      localStorage.setItem("speed-unit", currentUnit);
+      updateUnitUI();
+      // Re-render current speed in new units (fallback to 0 if we haven't seen a value)
+      if (lastSpeedMs !== null) {
+        renderSpeed(lastSpeedMs);
+      }
+    });
+  }
 
   // Screen wake lock
   keepScreenOnEl.addEventListener("change", handleWakeLock);

@@ -89,18 +89,91 @@ body {
   color: light-dark(#111, #eee);
 }
 
+button.unit {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee);
+  border: 1px solid light-dark(#ccc, #333);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 20px;
+  cursor: pointer;
+  display: block;
+  margin: 8px auto 0;
+}
+
+button.unit:active {
+  transform: translateY(1px);
+}
+
+/* Portrait: Hide landscape unit button */
+button.landscape-unit {
+  display: none;
+}
+
 @media (orientation: landscape) {
   .container {
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .speed {
-    font-size: min(32vw, calc(74svh - 130px));
-    margin-top: 24svh;
+    /*
+      Maximize speed size in landscape.
+      Constraint 1: Height. Leave room for warning bar (top) and controls (bottom).
+      Constraint 2: Width. Must fit 3 digits (3em width).
+    */
+    font-size: min(32vw, 65svh);
+    line-height: 0.8;
+    margin: auto;
+    /* Move down to avoid clipping at the top */
+    transform: translateY(6vh);
   }
 
-  button.unit {
-    margin-top: 2svh;
+  /* Hide the portrait unit button */
+  .container button.unit {
+    display: none;
+  }
+
+  /* Show landscape unit button */
+  .status-container button.unit {
+    display: block;
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 16px;
+    /* Reset portrait margins */
+    margin-left: 12px;
+  }
+
+  /* Layout for status and unit button side-by-side */
+  .status-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .status {
+    /* Fixed min-width to prevent shifting when text changes "Accuracy: 5m" vs "100m" */
+    min-width: 140px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .bottom-bar {
+    /* Reduce padding to give more space to speed */
+    padding-top: 4px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .warning {
+    /* Shrink warning in landscape */
+    font-size: 10px;
+    padding: max(0px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right)) 1px
+      max(10px, env(safe-area-inset-left));
+    line-height: 1.0;
+    opacity: 0.9;
   }
 }
 
@@ -265,22 +338,6 @@ body {
   text-align: center;
 }
 
-button.unit {
-  background: light-dark(#ddd, #222);
-  color: light-dark(#111, #eee);
-  border: 1px solid light-dark(#ccc, #333);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 20px;
-  cursor: pointer;
-  display: block;
-  margin: 8px auto 0;
-}
-
-button.unit:active {
-  transform: translateY(1px);
-}
-
 .bottom-left-controls {
   display: flex;
   align-items: center;
@@ -421,7 +478,10 @@ button.unit:active {
         <input type="checkbox" id="keepScreenOn" />
       </div>
 
-      <div id="status" class="status">Waiting for GPS...</div>
+      <div class="status-container">
+        <div id="status" class="status">Waiting for GPS...</div>
+        <button type="button" class="unit landscape-unit" aria-label="Toggle Unit">mph</button>
+      </div>
 
       <div class="bottom-right-controls">
         <button
