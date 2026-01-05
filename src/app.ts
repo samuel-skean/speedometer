@@ -4,7 +4,7 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
-import { convertSpeed, formatDuration, type Unit, Units } from "./logic";
+import { convertSpeed, type Unit, Units } from "./logic";
 
 // Define DOM elements
 let speedEl: HTMLDivElement;
@@ -12,11 +12,6 @@ let statusEl: HTMLDivElement;
 let unitBtn: HTMLButtonElement;
 let keepScreenOnEl: HTMLInputElement;
 let warningEl: HTMLDivElement;
-let ageCard: HTMLDivElement;
-let agePrimaryValueEl: HTMLDivElement;
-let ageSecondaryValueEl: HTMLDivElement;
-let agePrimaryLabelEl: HTMLDivElement;
-let ageSecondaryLabelEl: HTMLDivElement;
 
 // Mutable state
 let currentUnit: Unit;
@@ -80,7 +75,7 @@ function setStatus(text: string): void {
   statusEl.textContent = text;
 }
 
-interface AgeParts {
+interface StopwatchParts {
   primaryValue: number;
   secondaryValue: number;
   primaryLabel: string;
@@ -89,13 +84,15 @@ interface AgeParts {
   secondaryWidth: number;
 }
 
-function formatAge(ms: number): AgeParts {
+function formatStaleStopwatch(ms: number): StopwatchParts {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const totalHours = Math.floor(totalSeconds / 3600);
+  const totalDays = Math.floor(totalHours / 24);
 
-  const minutes = Math.floor(totalSeconds / 60);
   if (totalSeconds < 3600) {
     return {
-      primaryValue: minutes,
+      primaryValue: totalMinutes,
       secondaryValue: totalSeconds % 60,
       primaryLabel: "minute",
       secondaryLabel: "second",
@@ -104,69 +101,37 @@ function formatAge(ms: number): AgeParts {
     };
   }
 
-  const hours = Math.floor(totalSeconds / 3600);
   if (totalSeconds < 86400) {
     return {
-      primaryValue: hours,
-      secondaryValue: Math.floor((totalSeconds % 3600) / 60),
+      primaryValue: totalHours,
+      secondaryValue: totalMinutes % 60,
       primaryLabel: "hour",
       secondaryLabel: "minute",
+      primaryWidth: 2,
+      secondaryWidth: 2,
+    };
+  }
+
+  if (totalSeconds < 31536000) {
+    return {
+      primaryValue: totalDays,
+      secondaryValue: totalHours % 24,
+      primaryLabel: "day",
+      secondaryLabel: "hour",
       primaryWidth: 3,
       secondaryWidth: 2,
     };
   }
 
-  const days = Math.floor(totalSeconds / 86400);
-  if (totalSeconds < 31536000) {
-    return {
-      primaryValue: days,
-      secondaryValue: Math.floor((totalSeconds % 86400) / 3600),
-      primaryLabel: "day",
-      secondaryLabel: "hour",
-      primaryWidth: 4,
-      secondaryWidth: 2,
-    };
-  }
-
+  const years = Math.floor(totalDays / 365);
   return {
-    primaryValue: Math.floor(totalSeconds / 31536000),
-    secondaryValue: Math.floor((totalSeconds % 31536000) / 3600),
+    primaryValue: years,
+    secondaryValue: totalHours % 24,
     primaryLabel: "year",
     secondaryLabel: "hour",
-    primaryWidth: 4,
+    primaryWidth: 3,
     secondaryWidth: 2,
   };
-}
-
-function renderAge(ms: number): void {
-  if (!ageCard) {
-    return;
-  }
-
-  const {
-    primaryValue,
-    secondaryValue,
-    primaryLabel,
-    secondaryLabel,
-    primaryWidth,
-    secondaryWidth,
-  } = formatAge(ms);
-
-  ageCard.hidden = false;
-
-  const pluralize = (value: number, label: string) =>
-    value === 1 ? label : `${label}s`;
-
-  agePrimaryValueEl.textContent = String(primaryValue).padStart(
-    primaryWidth,
-    "0",
-  );
-  ageSecondaryValueEl.textContent = String(secondaryValue).padStart(
-    secondaryWidth,
-    "0",
-  );
-  agePrimaryLabelEl.textContent = pluralize(primaryValue, primaryLabel);
-  ageSecondaryLabelEl.textContent = pluralize(secondaryValue, secondaryLabel);
 }
 
 function renderUnsupported(): void {
@@ -294,7 +259,6 @@ function handlePosition(pos: GeolocationPosition): void {
       lastSpeedMs = speed;
       renderSpeed(speed);
       lastUpdateTimestamp = now;
-      renderAge(0);
       if (warningEl) {
         warningEl.hidden = true;
       }
@@ -356,21 +320,37 @@ function startGeolocation(): void {
     // Check for stale data every second
     setInterval(() => {
       const diff = Date.now() - lastUpdateTimestamp;
-      if (lastUpdateTimestamp > 0) {
-        renderAge(diff);
-      }
-
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
+          const {
+            primaryValue,
+            secondaryValue,
+            primaryLabel,
+            secondaryLabel,
+            primaryWidth,
+            secondaryWidth,
+          } = formatStaleStopwatch(diff);
 
-          const { value, unit, maxDigits } = formatDuration(diff);
+          const pluralize = (value: number, label: string) =>
+            value === 1 ? label : `${label}s`;
 
-          // Singular/Plural
-          const unitLabel = value === 1 ? unit : `${unit}s`;
-
-          // Construct HTML with reserved width for digits
-          warningEl.innerHTML = `Speed data is <span class="warning-digits" style="min-width: ${maxDigits}ch">${value}</span> ${unitLabel} old`;
+          warningEl.innerHTML = `
+            <span class="warning-content">
+              Speed data is
+              <span class="warning-counter">
+                <span class="warning-part">
+                  <span class="warning-number" style="min-width: ${primaryWidth}ch">${String(primaryValue).padStart(primaryWidth, "0")}</span>
+                  <span class="warning-label">${pluralize(primaryValue, primaryLabel)}</span>
+                </span>
+                <span class="warning-part">
+                  <span class="warning-number" style="min-width: ${secondaryWidth}ch">${String(secondaryValue).padStart(secondaryWidth, "0")}</span>
+                  <span class="warning-label">${pluralize(secondaryValue, secondaryLabel)}</span>
+                </span>
+              </span>
+              old
+            </span>
+          `;
         }
       }
     }, 1000);
@@ -384,11 +364,6 @@ export function resetState(): void {
   lastUpdateTimestamp = 0;
   wakeLock = null;
   firstSpeedTimestamp = null;
-  if (ageCard) {
-    ageCard.hidden = true;
-    agePrimaryValueEl.textContent = "00";
-    ageSecondaryValueEl.textContent = "00";
-  }
 }
 
 export function init(): void {
@@ -428,32 +403,6 @@ export function init(): void {
     throw new Error("Warning element not found");
   }
   warningEl = warningElNullable as HTMLDivElement;
-
-  const ageCardNullable = document.getElementById("age-card");
-  const agePrimaryValueNullable = document.getElementById("age-primary-value");
-  const ageSecondaryValueNullable = document.getElementById(
-    "age-secondary-value",
-  );
-  const agePrimaryLabelNullable = document.getElementById("age-primary-label");
-  const ageSecondaryLabelNullable = document.getElementById(
-    "age-secondary-label",
-  );
-
-  if (
-    !ageCardNullable ||
-    !agePrimaryValueNullable ||
-    !ageSecondaryValueNullable ||
-    !agePrimaryLabelNullable ||
-    !ageSecondaryLabelNullable
-  ) {
-    throw new Error("Age display elements not found");
-  }
-
-  ageCard = ageCardNullable as HTMLDivElement;
-  agePrimaryValueEl = agePrimaryValueNullable as HTMLDivElement;
-  ageSecondaryValueEl = ageSecondaryValueNullable as HTMLDivElement;
-  agePrimaryLabelEl = agePrimaryLabelNullable as HTMLDivElement;
-  ageSecondaryLabelEl = ageSecondaryLabelNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
   const storedUnit = localStorage.getItem("speed-unit");

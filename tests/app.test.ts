@@ -23,12 +23,6 @@ describe("Speedometer App", () => {
             data-placeholder="${PLACEHOLDER}"
             data-placeholder-visible="true"
           >${PLACEHOLDER}</div>
-          <div id="age-card" hidden>
-            <div id="age-primary-value"></div>
-            <div id="age-primary-label"></div>
-            <div id="age-secondary-value"></div>
-            <div id="age-secondary-label"></div>
-          </div>
           <button id="unit" class="unit" aria-label="Toggle speed units">mph</button>
       </div>
       <div class="bottom-bar">
@@ -202,6 +196,53 @@ describe("Speedometer App", () => {
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
     expect(speedEl.textContent).toBe("36");
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("shows a dual-unit stale warning with fixed-width numbers", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 9,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+
+      vi.advanceTimersByTime(1000);
+
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    }
+
+    vi.advanceTimersByTime(6500);
+
+    expect(warningEl.hidden).toBe(false);
+
+    const numbers = Array.from(
+      warningEl.querySelectorAll(".warning-number"),
+      (el) => el.textContent,
+    );
+    expect(numbers).toEqual(["00", "06"]);
+
+    const labels = Array.from(
+      warningEl.querySelectorAll(".warning-label"),
+      (el) => el.textContent,
+    );
+    expect(labels).toEqual(["minutes", "seconds"]);
 
     watchPositionSpy.mockRestore();
   });
