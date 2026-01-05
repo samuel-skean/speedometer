@@ -249,7 +249,9 @@ function handlePosition(pos: GeolocationPosition): void {
   const { speed, accuracy } = pos.coords;
   const now = Date.now();
   const fixTimestamp =
-    typeof pos.timestamp === "number" ? Math.max(pos.timestamp, now) : now;
+    typeof pos.timestamp === "number" && Number.isFinite(pos.timestamp)
+      ? Math.max(pos.timestamp, now)
+      : now;
 
   // Track freshness on every GPS fix, even if speed is missing
   lastUpdateTimestamp = fixTimestamp;

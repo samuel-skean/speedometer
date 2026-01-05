@@ -295,6 +295,41 @@ describe("Speedometer App", () => {
     expect(warningEl.hidden).toBe(true);
   });
 
+  it("ignores invalid GPS timestamps when tracking staleness", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: Number.NaN,
+    };
+
+    if (!watchSuccessCallback) {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+
+    // Timer shouldn't go stale immediately when the timestamp is invalid
+    vi.advanceTimersByTime(2000);
+    expect(warningEl.hidden).toBe(true);
+
+    // It should still count as stale once enough real time passes
+    vi.advanceTimersByTime(5000);
+    expect(warningEl.hidden).toBe(false);
+  });
+
   it("refreshes freshness timestamps even when speed is missing", () => {
     let watchSuccessCallback: PositionCallback | undefined;
 
