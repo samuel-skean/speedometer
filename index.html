@@ -89,8 +89,24 @@ body {
   color: light-dark(#111, #eee);
 }
 
+button.unit {
+  background: light-dark(#ddd, #222);
+  color: light-dark(#111, #eee);
+  border: 1px solid light-dark(#ccc, #333);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 20px;
+  cursor: pointer;
+  display: block;
+  margin: 8px auto 0;
+}
+
+button.unit:active {
+  transform: translateY(1px);
+}
+
 /* Portrait: Hide landscape unit button */
-.landscape-unit {
+button.landscape-unit {
   display: none;
 }
 
@@ -101,9 +117,9 @@ body {
 
   .speed {
     /* Maximize speed size in landscape */
-    font-size: min(42vw, 65vh);
-    margin-top: 0;
-    /* Adjust margin to optically center or fill space */
+    font-size: min(50vw, 70vh);
+    line-height: 0.8;
+    margin: auto;
   }
 
   /* Hide the portrait unit button */
@@ -112,7 +128,7 @@ body {
   }
 
   /* Show landscape unit button */
-  .landscape-unit {
+  .status-container button.unit {
     display: block;
     margin: 0;
     padding: 6px 10px;
@@ -127,7 +143,8 @@ body {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 8px; /* Add spacing between status and button */
+    gap: 8px;
+    pointer-events: auto;
   }
 
   .status {
@@ -145,9 +162,9 @@ body {
 
   .warning {
     /* Shrink warning in landscape */
-    font-size: 0.9em;
-    padding: max(4px, env(safe-area-inset-top))
-      max(10px, env(safe-area-inset-right)) 4px
+    font-size: 0.8em;
+    padding: max(2px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right)) 2px
       max(10px, env(safe-area-inset-left));
     line-height: 1.1;
   }
@@ -312,22 +329,6 @@ body {
   font-weight: 600;
   cursor: pointer;
   text-align: center;
-}
-
-button.unit {
-  background: light-dark(#ddd, #222);
-  color: light-dark(#111, #eee);
-  border: 1px solid light-dark(#ccc, #333);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 20px;
-  cursor: pointer;
-  display: block;
-  margin: 8px auto 0;
-}
-
-button.unit:active {
-  transform: translateY(1px);
 }
 
 .bottom-left-controls {
