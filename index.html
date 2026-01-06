@@ -328,25 +328,23 @@ button.landscape-unit {
   scrollbar-color: light-dark(#ccc, #444) transparent; /* Firefox standard */
 }
 
-/* Custom scrollbar styling */
+/* Custom scrollbar styling (The Custom Scrollbar Hack) */
 .info-content::-webkit-scrollbar {
-  width: 10px;
-  background: transparent;
   -webkit-appearance: none;
+  width: 8px;
+  height: 8px;
 }
+
+/* Style the 'thumb' (the part you drag) */
 .info-content::-webkit-scrollbar-thumb {
-  background-color: light-dark(#888, #aaa);
-  border-radius: 5px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  background-color: light-dark(rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.5));
+  border-radius: 10px;
+  border: 2px solid light-dark(#ffffff, #1a1a1a); /* Adds padding around the thumb */
 }
-.info-content::-webkit-scrollbar-thumb:vertical {
-  min-height: 40px;
-}
-/* Ensure track is technically present to force visibility on iOS */
+
+/* Style the track */
 .info-content::-webkit-scrollbar-track {
-  background-color: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.1));
-  border-radius: 5px;
+  background: light-dark(#f1f1f1, #333);
 }
 
 .info-popover p {
