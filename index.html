@@ -319,7 +319,7 @@ button.landscape-unit {
 
 .info-content {
   overflow-y: auto;
-  flex: 1; /* Allow content to grow/shrink in the flex container */
+  flex: 1 1 auto; /* Allow shrink/grow, but base on content size */
   min-height: 0; /* Important for nested flex scroll containers */
   /* Add padding to right for scrollbar clearance if needed */
   padding-right: 4px;
