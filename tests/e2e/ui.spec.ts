@@ -25,7 +25,7 @@ test.describe("Speedometer UI & Layout", () => {
       // 3. Clear storage
       localStorage.clear();
       // Prevent auto-opening of the popover to ensure consistent test state
-      localStorage.setItem("vibe-warning-shown", "true");
+      localStorage.setItem("info-popover-shown", "true");
     });
 
     await page.goto("/");
@@ -39,21 +39,20 @@ test.describe("Speedometer UI & Layout", () => {
     await expect(unitBtn).toBeVisible();
     await expect(unitBtn).toHaveText("mph");
 
-    const popover = page.locator("#vibe-warning");
+    const popover = page.locator("#info-popover");
     // Popover is now suppressed by default in test setup, so we open it manually
     await page.locator(".info-btn").click();
     await expect(popover).toBeVisible();
 
     const heading = popover.locator("h2");
-    await expect(heading).toHaveText("Heads up!");
-    await expect(popover).toContainText("vibecoded");
+    await expect(heading).toHaveText("Info");
   });
 
   test("Landscape Layout - Browser Mode (Wide)", async ({ page }) => {
     // Force landscape viewport
     await page.setViewportSize({ width: 800, height: 400 });
 
-    const popover = page.locator("#vibe-warning");
+    const popover = page.locator("#info-popover");
     if (!(await popover.isVisible())) {
       await page.locator(".info-btn").click();
     }
