@@ -407,15 +407,15 @@ export function init(): void {
 
   updateUnitUI();
 
-  // Vibe warning popover logic
-  const vibeWarningEl = document.getElementById("vibe-warning");
+  // Info/Warning popover logic
+  const infoPopoverEl = document.getElementById("info-popover");
   const infoBtnEl = document.querySelector(".info-btn");
   const locationMsgEl = document.getElementById("vibe-location-msg");
 
   // Track if geolocation has been requested
   let geolocationStarted = false;
 
-  if (vibeWarningEl && "showPopover" in vibeWarningEl) {
+  if (infoPopoverEl && "showPopover" in infoPopoverEl) {
     const updateExitTarget = () => {
       if (!infoBtnEl) {
         return;
@@ -435,8 +435,8 @@ export function init(): void {
       const deltaX = iconCenterX - popoverCenterX;
       const deltaY = iconCenterY - popoverCenterY;
 
-      vibeWarningEl.style.setProperty("--exit-x", `${deltaX}px`);
-      vibeWarningEl.style.setProperty("--exit-y", `${deltaY}px`);
+      infoPopoverEl.style.setProperty("--exit-x", `${deltaX}px`);
+      infoPopoverEl.style.setProperty("--exit-y", `${deltaY}px`);
     };
 
     // Update on resize
@@ -445,8 +445,8 @@ export function init(): void {
     // Update before opening when triggered by button
     infoBtnEl?.addEventListener("click", updateExitTarget);
 
-    const hasShownWarning = localStorage.getItem("vibe-warning-shown");
-    const shouldShow = !hasShownWarning && !isStandalone();
+    const hasShownInfo = localStorage.getItem("info-popover-shown");
+    const shouldShow = !hasShownInfo && !isStandalone();
 
     // Only show automatically if not previously shown AND not installed as PWA
     if (shouldShow) {
@@ -455,7 +455,7 @@ export function init(): void {
         locationMsgEl.hidden = false;
       }
 
-      (vibeWarningEl as unknown as PopoverElement).showPopover();
+      (infoPopoverEl as unknown as PopoverElement).showPopover();
       // Calculate immediately, waiting for layout
       requestAnimationFrame(() => updateExitTarget());
     } else {
@@ -468,7 +468,7 @@ export function init(): void {
       startGeolocation();
     }
 
-    vibeWarningEl.addEventListener("toggle", (event: Event) => {
+    infoPopoverEl.addEventListener("toggle", (event: Event) => {
       const toggleEvent = event as ToggleEvent;
       if (toggleEvent.newState === "open") {
         updateExitTarget();
@@ -480,15 +480,15 @@ export function init(): void {
           locationMsgEl.hidden = true;
         }
 
-        localStorage.setItem("vibe-warning-shown", "true");
+        localStorage.setItem("info-popover-shown", "true");
 
         // Start geolocation if this was the first close
         if (!geolocationStarted) {
           geolocationStarted = true;
 
           const onTransitionEnd = (e: TransitionEvent) => {
-            if (e.target === vibeWarningEl) {
-              vibeWarningEl.removeEventListener(
+            if (e.target === infoPopoverEl) {
+              infoPopoverEl.removeEventListener(
                 "transitionend",
                 onTransitionEnd,
               );
@@ -496,7 +496,7 @@ export function init(): void {
             }
           };
 
-          vibeWarningEl.addEventListener("transitionend", onTransitionEnd);
+          infoPopoverEl.addEventListener("transitionend", onTransitionEnd);
         }
       }
     });

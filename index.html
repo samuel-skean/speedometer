@@ -256,7 +256,7 @@ button.landscape-unit {
 }
 
 /* Popover styling */
-.vibe-warning-popover {
+.info-popover {
   border: none;
   border-radius: 12px;
   padding: 16px;
@@ -266,6 +266,8 @@ button.landscape-unit {
   box-sizing: border-box;
   width: 100%;
   max-width: 350px;
+  /* Use max-height to ensure it fits in landscape viewports, leaving room for margins */
+  max-height: calc(100vh - 40px);
   text-align: left;
   font-family: inherit;
   /* Ensure consistent font size */
@@ -285,17 +287,17 @@ button.landscape-unit {
   inset: 0;
 }
 
-.vibe-warning-popover:popover-open {
+.info-popover:popover-open {
   transform: translate(0, 0) scale(1);
 }
 
 @starting-style {
-  .vibe-warning-popover:popover-open {
+  .info-popover:popover-open {
     transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
   }
 }
 
-.vibe-warning-popover::backdrop {
+.info-popover::backdrop {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   transition:
@@ -303,30 +305,72 @@ button.landscape-unit {
     overlay 0.5s allow-discrete;
 }
 
-.vibe-warning-popover:not(:popover-open)::backdrop {
+.info-popover:not(:popover-open)::backdrop {
   background: rgba(0, 0, 0, 0);
 }
 
-.vibe-warning-popover h2 {
+.info-popover h2 {
   margin-top: 0;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   font-size: 1.5em;
   text-align: center;
+  flex-shrink: 0;
 }
 
-.vibe-warning-popover p {
+.info-content {
+  overflow-y: auto;
+  flex: 1; /* Allow content to grow/shrink in the flex container */
+  min-height: 0; /* Important for nested flex scroll containers */
+  /* Add padding to right for scrollbar clearance if needed */
+  padding-right: 4px;
+}
+
+/* Custom scrollbar styling */
+.info-content::-webkit-scrollbar {
+  width: 6px;
+}
+.info-content::-webkit-scrollbar-thumb {
+  background-color: light-dark(#ccc, #444);
+  border-radius: 3px;
+}
+.info-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.info-popover p {
   margin: 0 0 12px 0;
   line-height: 1.4;
 }
 
-.vibe-warning-actions {
+.info-popover ul {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+  line-height: 1.4;
+}
+
+.info-popover li {
+  margin-bottom: 6px;
+}
+
+.inline-icon {
+  display: inline-block;
+  vertical-align: text-bottom;
+  width: 1.2em;
+  height: 1.2em;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.info-actions {
   margin-top: 16px;
   width: 100%;
   display: flex;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.vibe-warning-popover button {
+.info-popover button {
   background: light-dark(#111, #eee);
   color: light-dark(#eee, #111);
   border: none;
@@ -429,14 +473,14 @@ button.landscape-unit {
 }
 
 @media (orientation: landscape) {
-  .vibe-warning-popover {
+  .info-popover {
     /* Wider to reduce height in landscape */
     max-width: min(700px, 100vw - 40px);
   }
 }
 
 @media (orientation: landscape) and (display-mode: standalone) {
-  .vibe-warning-popover {
+  .info-popover {
     max-width: 350px;
   }
 }
@@ -487,7 +531,7 @@ button.landscape-unit {
         <button
           type="button"
           class="info-btn"
-          popovertarget="vibe-warning"
+          popovertarget="info-popover"
           aria-label="Show info"
         >
           <svg
@@ -530,15 +574,38 @@ button.landscape-unit {
       </div>
     </div>
 
-    <div id="vibe-warning" popover class="vibe-warning-popover">
-      <h2>Heads up!</h2>
-      <p>This app was mostly vibecoded, and the speed can drop out, though the app should tell you if the speed is more than 5 seconds out of date.</p>
-      <p>Also, the app requires location permissions. Your location + speed data never leave your device.</p>
-      <p id="vibe-location-msg" hidden>
-          We'll ask for location permissions now.
-      </p>
-      <div class="vibe-warning-actions">
-          <button popovertarget="vibe-warning" popovertargetaction="hide">
+    <div id="info-popover" popover class="info-popover">
+      <h2>Info</h2>
+      <div class="info-content">
+        <p>Speed readings may drop out (warning appears if >5s old). Location data stays on your device.</p>
+        <p><strong>Install App:</strong></p>
+        <p>
+          iOS: Tap Share
+          <svg class="inline-icon" viewBox="0 0 24 24">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+            <polyline points="16 6 12 2 8 6"></polyline>
+            <line x1="12" y1="2" x2="12" y2="15"></line>
+          </svg>
+          → 'Add to Home Screen'
+        </p>
+        <p>
+          Android: Tap Menu
+          <svg class="inline-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="1"></circle>
+            <circle cx="12" cy="5" r="1"></circle>
+            <circle cx="12" cy="19" r="1"></circle>
+          </svg>
+          → 'Add to Home screen'
+        </p>
+        <p style="opacity: 0.8; font-size: 0.9em;">
+          Optimized for modern iPhones, but works on most devices.
+        </p>
+        <p id="vibe-location-msg" hidden>
+            We'll ask for location permissions now.
+        </p>
+      </div>
+      <div class="info-actions">
+          <button popovertarget="info-popover" popovertargetaction="hide">
               Got it
           </button>
       </div>
