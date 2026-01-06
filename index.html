@@ -330,20 +330,23 @@ button.landscape-unit {
 
 /* Custom scrollbar styling */
 .info-content::-webkit-scrollbar {
-  width: 8px; /* Slightly wider to be more visible */
-  background: transparent; /* Track */
+  width: 10px;
+  background: transparent;
   -webkit-appearance: none;
 }
 .info-content::-webkit-scrollbar-thumb {
-  background-color: light-dark(#ccc, #444);
-  border-radius: 4px;
-  border: 2px solid transparent; /* Creates padding effect if background-clip used, but here simpler */
-  background-clip: content-box; /* Optional: makes thumb smaller than track */
+  background-color: light-dark(#888, #aaa);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
-/* Ensure track is technically present but transparent, to preserve layout */
+.info-content::-webkit-scrollbar-thumb:vertical {
+  min-height: 40px;
+}
+/* Ensure track is technically present to force visibility on iOS */
 .info-content::-webkit-scrollbar-track {
-  background: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.1)); /* Very faint track for "consistent styling" visibility context */
-  border-radius: 4px;
+  background-color: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.1));
+  border-radius: 5px;
 }
 
 .info-popover p {
