@@ -586,10 +586,10 @@ button.landscape-unit {
     <div id="info-popover" popover class="info-popover">
       <h2>Info</h2>
       <div class="info-content">
-        <p>Warns if data is stale (>5s). Location info stays on your device.</p>
+        <p>Warns if data is stale (more than 5 seconds old). Location and speed info stays on your device.</p>
 
         <div id="install-instructions" hidden>
-            <p><strong>Install App:</strong></p>
+            <p><strong>If you want, you can install this site to your homescreen:</strong></p>
             <p id="ios-instructions" hidden>
             iOS: Tap Share
             <svg class="inline-icon" viewBox="0 0 24 24">
@@ -597,7 +597,7 @@ button.landscape-unit {
                 <polyline points="16 6 12 2 8 6"></polyline>
                 <line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
-            → 'Add to Home Screen'
+            → 'Add to Home Screen'. Check "Open as Web App" if prompted to avoid the url bar.
             </p>
             <p id="android-instructions" hidden>
             Android: Tap Menu
@@ -611,7 +611,7 @@ button.landscape-unit {
         </div>
 
         <p style="opacity: 0.8; font-size: 0.9em;">
-          Optimized for modern iPhones, but works on most devices.
+          The layout is optimized for modern iPhones, but works on most devices.
         </p>
         <p id="vibe-location-msg" hidden>
             We'll ask for location permissions now.
