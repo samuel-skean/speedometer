@@ -154,19 +154,6 @@ function isStandalone(): boolean {
   return isStandaloneMode || isIOSStandalone;
 }
 
-function getMobileOS(): "ios" | "android" | "other" {
-  const ua = navigator.userAgent || "";
-  // Check iOS
-  if (/iPad|iPhone|iPod/.test(ua)) {
-    return "ios";
-  }
-  // Check Android
-  if (/Android/.test(ua)) {
-    return "android";
-  }
-  return "other";
-}
-
 async function handleWakeLock(): Promise<void> {
   if (!("wakeLock" in navigator)) {
     if (keepScreenOnEl) {
@@ -420,46 +407,15 @@ export function init(): void {
 
   updateUnitUI();
 
-  // Info/Warning popover logic
-  const infoPopoverEl = document.getElementById("info-popover");
+  // Vibe warning popover logic
+  const vibeWarningEl = document.getElementById("vibe-warning");
   const infoBtnEl = document.querySelector(".info-btn");
   const locationMsgEl = document.getElementById("vibe-location-msg");
-  const installInstructionsEl = document.getElementById("install-instructions");
-  const iosInstructionsEl = document.getElementById("ios-instructions");
-  const androidInstructionsEl = document.getElementById("android-instructions");
 
   // Track if geolocation has been requested
   let geolocationStarted = false;
 
-  if (infoPopoverEl && "showPopover" in infoPopoverEl) {
-    // Show/hide install instructions based on OS
-    if (installInstructionsEl) {
-      const os = getMobileOS();
-      if (!isStandalone()) {
-        installInstructionsEl.hidden = false;
-        if (os === "ios" && iosInstructionsEl) {
-          iosInstructionsEl.hidden = false;
-        } else if (os === "android" && androidInstructionsEl) {
-          androidInstructionsEl.hidden = false;
-        } else {
-          // Fallback or show both? User asked for "different instructions... using icons... but no arrows pointing outside".
-          // If we are on desktop ("other"), maybe we don't show install instructions?
-          // But user might be debugging in desktop browser.
-          // Let's show both if "other" to be safe, or neither?
-          // User said "optimized for modern iPhones".
-          // Let's show both as fallback if we can't detect, so users know it's possible.
-          if (iosInstructionsEl) {
-            iosInstructionsEl.hidden = false;
-          }
-          if (androidInstructionsEl) {
-            androidInstructionsEl.hidden = false;
-          }
-        }
-      } else {
-        installInstructionsEl.hidden = true;
-      }
-    }
-
+  if (vibeWarningEl && "showPopover" in vibeWarningEl) {
     const updateExitTarget = () => {
       if (!infoBtnEl) {
         return;
@@ -479,8 +435,8 @@ export function init(): void {
       const deltaX = iconCenterX - popoverCenterX;
       const deltaY = iconCenterY - popoverCenterY;
 
-      infoPopoverEl.style.setProperty("--exit-x", `${deltaX}px`);
-      infoPopoverEl.style.setProperty("--exit-y", `${deltaY}px`);
+      vibeWarningEl.style.setProperty("--exit-x", `${deltaX}px`);
+      vibeWarningEl.style.setProperty("--exit-y", `${deltaY}px`);
     };
 
     // Update on resize
@@ -489,8 +445,8 @@ export function init(): void {
     // Update before opening when triggered by button
     infoBtnEl?.addEventListener("click", updateExitTarget);
 
-    const hasShownInfo = localStorage.getItem("info-popover-shown");
-    const shouldShow = !hasShownInfo && !isStandalone();
+    const hasShownWarning = localStorage.getItem("vibe-warning-shown");
+    const shouldShow = !hasShownWarning && !isStandalone();
 
     // Only show automatically if not previously shown AND not installed as PWA
     if (shouldShow) {
@@ -499,7 +455,7 @@ export function init(): void {
         locationMsgEl.hidden = false;
       }
 
-      (infoPopoverEl as unknown as PopoverElement).showPopover();
+      (vibeWarningEl as unknown as PopoverElement).showPopover();
       // Calculate immediately, waiting for layout
       requestAnimationFrame(() => updateExitTarget());
     } else {
@@ -512,7 +468,7 @@ export function init(): void {
       startGeolocation();
     }
 
-    infoPopoverEl.addEventListener("toggle", (event: Event) => {
+    vibeWarningEl.addEventListener("toggle", (event: Event) => {
       const toggleEvent = event as ToggleEvent;
       if (toggleEvent.newState === "open") {
         updateExitTarget();
@@ -524,15 +480,15 @@ export function init(): void {
           locationMsgEl.hidden = true;
         }
 
-        localStorage.setItem("info-popover-shown", "true");
+        localStorage.setItem("vibe-warning-shown", "true");
 
         // Start geolocation if this was the first close
         if (!geolocationStarted) {
           geolocationStarted = true;
 
           const onTransitionEnd = (e: TransitionEvent) => {
-            if (e.target === infoPopoverEl) {
-              infoPopoverEl.removeEventListener(
+            if (e.target === vibeWarningEl) {
+              vibeWarningEl.removeEventListener(
                 "transitionend",
                 onTransitionEnd,
               );
@@ -540,7 +496,7 @@ export function init(): void {
             }
           };
 
-          infoPopoverEl.addEventListener("transitionend", onTransitionEnd);
+          vibeWarningEl.addEventListener("transitionend", onTransitionEnd);
         }
       }
     });
