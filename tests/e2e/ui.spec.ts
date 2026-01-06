@@ -46,7 +46,7 @@ test.describe("Speedometer UI & Layout", () => {
 
     const heading = popover.locator("h2");
     await expect(heading).toHaveText("Info");
-    await expect(popover).toContainText("Location info stays on your device");
+    await expect(popover).toContainText("Location data is private");
   });
 
   test("Landscape Layout - Browser Mode (Wide)", async ({ page }) => {

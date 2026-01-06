@@ -267,7 +267,7 @@ button.landscape-unit {
   width: 100%;
   max-width: 350px;
   /* Use max-height to ensure it fits in landscape viewports, leaving room for margins */
-  max-height: calc(100vh - 40px);
+  max-height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
   text-align: left;
   font-family: inherit;
   /* Ensure consistent font size */
@@ -342,7 +342,7 @@ button.landscape-unit {
 }
 /* Ensure track is technically present but transparent, to preserve layout */
 .info-content::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.05); /* Very faint track for "consistent styling" visibility context */
+  background: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.1)); /* Very faint track for "consistent styling" visibility context */
   border-radius: 4px;
 }
 
@@ -584,39 +584,37 @@ button.landscape-unit {
     </div>
 
     <div id="info-popover" popover class="info-popover">
-      <h2>Heads Up</h2>
+      <h2>Info</h2>
       <div class="info-content">
-          <p>Lorum ipsum blah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blahblah blah</p>
-        <p> Warning: This app was mostly vibe-coded, but it seems to work.</p>
-        <p>The speed can drop out, but the app warns if the data is more than 5 seconds old. Location and speed data stays on your device.</p>
+        <p>Warns if GPS lags >5s. Location data is private.</p>
 
         <div id="install-instructions" hidden>
-            <p><strong>If you want, you can install this site to your homescreen:</strong></p>
+            <p><strong>Install to Home Screen:</strong></p>
             <p id="ios-instructions" hidden>
-            iOS: Tap Share
+            iOS: Share
             <svg class="inline-icon" viewBox="0 0 24 24">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                 <polyline points="16 6 12 2 8 6"></polyline>
                 <line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
-            → 'Add to Home Screen'. Check "Open as Web App" if prompted to avoid the url bar.
+            → Add to Home Screen
             </p>
             <p id="android-instructions" hidden>
-            Android: Tap Menu
+            Android: Menu
             <svg class="inline-icon" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="1"></circle>
                 <circle cx="12" cy="5" r="1"></circle>
                 <circle cx="12" cy="19" r="1"></circle>
             </svg>
-            → 'Add to Home screen'
+            → Add to Home screen
             </p>
         </div>
 
-        <p>
-          The layout is optimized for modern iPhones, but works on most devices.
+        <p style="opacity: 0.8; font-size: 0.9em;">
+          Works best on modern iPhones.
         </p>
         <p id="vibe-location-msg" hidden>
-            We'll ask for location permissions now.
+            Location permission needed.
         </p>
         <div class="info-actions">
             <button popovertarget="info-popover" popovertargetaction="hide">

@@ -1,6 +1,6 @@
 {
   "name": "speedometer",
-  "version": "0.0.75",
+  "version": "0.0.76",
   "description": "Minimal PWA speedometer that displays GPS speed. Includes TypeScript script to render PNG icons from SVG using sharp.",
   "license": "MIT",
   "private": true,

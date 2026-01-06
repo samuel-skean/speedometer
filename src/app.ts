@@ -372,10 +372,10 @@ export function resetState(): void {
 }
 
 export function init(): void {
-  // if (!hasNativeSpeedField() || !isLikelyGpsDevice()) {
-  //   renderUnsupported();
-  //   return;
-  // }
+  if (!hasNativeSpeedField() || !isLikelyGpsDevice()) {
+    renderUnsupported();
+    return;
+  }
 
   const speedElNullable = document.getElementById("speed");
   if (!speedElNullable) {
@@ -448,8 +448,12 @@ export function init(): void {
           // Let's show both if "other" to be safe, or neither?
           // User said "optimized for modern iPhones".
           // Let's show both as fallback if we can't detect, so users know it's possible.
-          if (iosInstructionsEl) iosInstructionsEl.hidden = false;
-          if (androidInstructionsEl) androidInstructionsEl.hidden = false;
+          if (iosInstructionsEl) {
+            iosInstructionsEl.hidden = false;
+          }
+          if (androidInstructionsEl) {
+            androidInstructionsEl.hidden = false;
+          }
         }
       } else {
         installInstructionsEl.hidden = true;
