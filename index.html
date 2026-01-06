@@ -321,7 +321,7 @@ button.landscape-unit {
 }
 
 .info-content {
-  overflow-y: auto;
+  overflow-y: scroll; /* Force scrollbar track to be visible always */
   flex: 1 1 auto; /* Allow shrink/grow, but base on content size */
   min-height: 0; /* Important for nested flex scroll containers */
   padding: 0 16px 16px; /* Padding sides/bottom */
@@ -332,6 +332,7 @@ button.landscape-unit {
 .info-content::-webkit-scrollbar {
   width: 8px; /* Slightly wider to be more visible */
   background: transparent; /* Track */
+  -webkit-appearance: none;
 }
 .info-content::-webkit-scrollbar-thumb {
   background-color: light-dark(#ccc, #444);
