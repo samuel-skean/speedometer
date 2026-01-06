@@ -372,10 +372,10 @@ export function resetState(): void {
 }
 
 export function init(): void {
-  if (!hasNativeSpeedField() || !isLikelyGpsDevice()) {
-    renderUnsupported();
-    return;
-  }
+  // if (!hasNativeSpeedField() || !isLikelyGpsDevice()) {
+  //   renderUnsupported();
+  //   return;
+  // }
 
   const speedElNullable = document.getElementById("speed");
   if (!speedElNullable) {
