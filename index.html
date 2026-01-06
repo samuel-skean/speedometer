@@ -586,35 +586,35 @@ button.landscape-unit {
     <div id="info-popover" popover class="info-popover">
       <h2>Info</h2>
       <div class="info-content">
-        <p>Warns if GPS lags >5s. Location data is private.</p>
+        <p>Warns if data is stale (>5s). Location info stays on your device.</p>
 
         <div id="install-instructions" hidden>
-            <p><strong>Install to Home Screen:</strong></p>
+            <p><strong>Install App:</strong></p>
             <p id="ios-instructions" hidden>
-            iOS: Share
+            iOS: Tap Share
             <svg class="inline-icon" viewBox="0 0 24 24">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                 <polyline points="16 6 12 2 8 6"></polyline>
                 <line x1="12" y1="2" x2="12" y2="15"></line>
             </svg>
-            → Add to Home Screen
+            → 'Add to Home Screen'
             </p>
             <p id="android-instructions" hidden>
-            Android: Menu
+            Android: Tap Menu
             <svg class="inline-icon" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="1"></circle>
                 <circle cx="12" cy="5" r="1"></circle>
                 <circle cx="12" cy="19" r="1"></circle>
             </svg>
-            → Add to Home screen
+            → 'Add to Home screen'
             </p>
         </div>
 
         <p style="opacity: 0.8; font-size: 0.9em;">
-          Works best on modern iPhones.
+          Optimized for modern iPhones, but works on most devices.
         </p>
         <p id="vibe-location-msg" hidden>
-            Location permission needed.
+            We'll ask for location permissions now.
         </p>
         <div class="info-actions">
             <button popovertarget="info-popover" popovertargetaction="hide">
