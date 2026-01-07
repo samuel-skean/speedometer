@@ -286,6 +286,7 @@ button.landscape-unit {
   margin: auto;
   inset: 0;
   overflow: hidden; /* Mask children for border radius */
+  position: relative; /* For absolute positioning of overlay */
 }
 
 .info-popover:popover-open {
@@ -326,6 +327,30 @@ button.landscape-unit {
   min-height: 0; /* Important for nested flex scroll containers */
   padding: 0 16px 16px; /* Padding sides/bottom */
   scrollbar-color: light-dark(#ccc, #444) transparent; /* Firefox standard */
+}
+
+.scroll-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, light-dark(#fff, #1a1a1a) 90%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-weight: 500;
+  font-size: 0.9em;
+  color: light-dark(#111, #eee);
+  z-index: 2;
+}
+
+.scroll-overlay.visible {
+  opacity: 1;
 }
 
 /* Custom scrollbar styling (The Custom Scrollbar Hack) */
@@ -624,6 +649,7 @@ button.landscape-unit {
             </button>
         </div>
       </div>
+      <div class="scroll-overlay">Scroll to see more</div>
     </div>
 
     <script type="module" src="/src/app.ts"></script>
