@@ -272,8 +272,6 @@ button.landscape-unit {
   font-family: inherit;
   /* Ensure consistent font size */
   font-size: 16px;
-  display: flex;
-  flex-direction: column;
 
   /* Animation */
   transition:
@@ -286,11 +284,13 @@ button.landscape-unit {
   margin: auto;
   inset: 0;
   overflow: hidden; /* Mask children for border radius */
-  position: relative; /* For absolute positioning of overlay */
+  position: fixed; /* For absolute positioning of overlay */
 }
 
 .info-popover:popover-open {
   transform: translate(0, 0) scale(1);
+  display: flex;
+  flex-direction: column;
 }
 
 @starting-style {
