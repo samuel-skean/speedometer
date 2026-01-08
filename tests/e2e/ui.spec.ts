@@ -1,28 +1,26 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Speedometer UI & Layout", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    await context.grantPermissions(["geolocation"]);
+
     // Inject mocks BEFORE the page loads scripts to pass startup checks
     await page.addInitScript(() => {
-      // 1. Mock GeolocationCoordinates.prototype.speed
-      if (typeof GeolocationCoordinates === "undefined") {
+      // Enable Test Mode to bypass strict device checks
+      // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+      (window as any).__TEST_MODE__ = true;
+
+      // Mock Geolocation if missing (unlikely in Playwright but good fallback)
+      if (!("geolocation" in navigator)) {
         // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
-        (window as any).GeolocationCoordinates = class {};
+        (navigator as any).geolocation = {
+          // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+          watchPosition: (_success: any) => {},
+          clearWatch: () => {},
+        };
       }
 
-      Object.defineProperty(GeolocationCoordinates.prototype, "speed", {
-        get: () => 0, // Dummy value
-        configurable: true,
-        enumerable: true,
-      });
-
-      // 2. Mock UserAgentData
-      Object.defineProperty(navigator, "userAgentData", {
-        get: () => ({ mobile: true }),
-        configurable: true,
-      });
-
-      // 3. Clear storage
+      // Clear storage
       localStorage.clear();
       // Prevent auto-opening of the popover to ensure consistent test state
       localStorage.setItem("info-popover-shown", "true");
