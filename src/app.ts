@@ -24,6 +24,31 @@ const GPS_WARMUP_MS = 1000;
 
 export const PLACEHOLDER = "———";
 
+const GITHUB_LINK_HTML = `
+  <a
+    href="https://github.com/samuel-skean/speedometer"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="github-link fixed-github-link"
+    aria-label="View source on GitHub"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      stroke="currentColor"
+      stroke-width="2"
+      fill="none"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path
+        d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+      ></path>
+    </svg>
+  </a>
+`;
+
 // Augment HTMLElement to include the Popover API
 interface PopoverElement extends HTMLElement {
   showPopover(): void;
@@ -88,10 +113,33 @@ function renderUnsupported(): void {
         </p>
       </div>
     </main>
+    ${GITHUB_LINK_HTML}
+  `;
+}
+
+function renderLocationDenied(): void {
+  document.body.innerHTML = `
+    <main class="unsupported" role="alert">
+      <div class="unsupported__content">
+        <p class="unsupported__eyebrow">Location Denied</p>
+        <h1>Location services are disabled.</h1>
+        <p>
+          This app needs access to your location to calculate your speed.
+          Please check your browser settings and try again.
+        </p>
+      </div>
+    </main>
+    ${GITHUB_LINK_HTML}
   `;
 }
 
 function hasNativeSpeedField(): boolean {
+  // Allow bypass for testing
+  // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+  if ((window as any).__TEST_MODE__) {
+    return true;
+  }
+
   // Basic geolocation support check
   if (!("geolocation" in navigator)) {
     return false;
@@ -128,6 +176,12 @@ function hasNativeSpeedField(): boolean {
 }
 
 function isLikelyGpsDevice(): boolean {
+  // Allow bypass for testing
+  // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+  if ((window as any).__TEST_MODE__) {
+    return true;
+  }
+
   const uaData = (
     navigator as Navigator & { userAgentData?: { mobile?: boolean } }
   ).userAgentData;
@@ -241,7 +295,7 @@ function handlePosition(pos: GeolocationPosition): void {
 function handleError(err: GeolocationPositionError): void {
   switch (err.code) {
     case err.PERMISSION_DENIED:
-      setStatus("Location permission denied. Enable it to see speed.");
+      renderLocationDenied();
       break;
     case err.POSITION_UNAVAILABLE:
       setStatus("Location unavailable. Move to open sky for GPS.");
@@ -279,73 +333,13 @@ function startGeolocation(): void {
 
           const parts = formatDuration(diff);
 
-          // Construct HTML parts
+          const isMultiPart = parts.length > 1;
           const htmlParts = parts.map((part) => {
-            // Add padding for fixed width if needed, but min-width usually handles it if monospaced or tnum
-            // For >1 component, we generally want leading zeros if it's the second component?
-            // "5m 30s" -> "10m 05s" to keep alignment fixed?
-            // The prompt says "Make sure the alignment of all the text remains completely fixed as it ticks up"
-            // If we have "5m 30s", and next is "5m 31s", width is same.
-            // "9m 59s" -> "10m 00s"
-            // We need to ensure each number field reserves enough space.
-            // Using `min-width: ${part.maxDigits}ch` helps.
-            // Also, for second component, usually we pad with '0' for alignment in digital clocks,
-            // e.g. 1m 05s.
-            // `formatDuration` logic logic returns value as number.
-            // Let's modify display logic to pad with 0 if it is not the first component?
-            // User requirement: "starting with the minutes in the same widget that already exists".
-            // "Show the stale data stopwatch in two components starting with the minutes"
-            // "It should show how many minutes and seconds have passed..."
-            // I'll stick to min-width for now. If visual alignment needs leading zero for second component, I'll add it.
-            // The user emphasized "completely fixed as it ticks up".
-            // If I go from 59s -> 1m 00s.
-            // 59s is "59 seconds". 1m 00s is "1 minute 0 seconds" or "1m 0s"?
-            // Existing logic used full words "seconds", "minute".
-            // Requested logic: "how many minutes and seconds have passed".
-            // Maybe it implies "5m 30s" or "5 minutes 30 seconds"?
-            // "starting with the minutes... It should show how many minutes and seconds have passed"
-            // Given the existing UI uses full words "seconds" etc., and request says "starting with the minutes in the same widget that already exists",
-            // I should probably keep the style somewhat consistent but maybe shorter if it gets too long?
-            // But "5m 30s" is usually abbreviated.
-            // Let's look at the implementation plan again. "Minutes and seconds (e.g., '5m 30s')".
-            // I will use abbreviated units for multi-component display to fit better?
-            // Or full words? "5 minutes 30 seconds" is very long.
-            // The example in my thought process was "5m 30s".
-            // Let's assume full words first as per current widget style, unless it breaks layout.
-            // Current widget: "Speed data is <span ...>5</span> seconds old"
-            // New widget: "Speed data is <span ...>5</span> minutes <span ...>30</span> seconds old"
-            // This is getting long.
-            // Maybe I should abbreviate if > 1 minute?
-            // "Speed data is 5m 30s old"
-            // Let's try abbreviated units for the multi-part ones, and keep full word for < 1 minute if desired,
-            // or just switch to abbreviated for everything for consistency?
-            // The prompt asks for "how many minutes and seconds have passed", not explicitly "m" and "s".
-            // However, "starting with the minutes" -> "5m 30s" is a very common stopwatch format.
-            // Also "Make sure the alignment... remains completely fixed".
-            // Shorter units help with fixed alignment on small screens.
-            // I'll use abbreviations for multi-component.
-            // For single component (seconds), I'll stick to full word or abbreviation?
-            // "Speed data is 5s old" vs "Speed data is 5 seconds old".
-            // I will stick to full words for single component to minimize change for < 1 min,
-            // and use abbreviations for multi-component to save space.
-
-            const isMultiPart = parts.length > 1;
             const label = isMultiPart
               ? part.unit[0]
               : part.value === 1
                 ? part.unit
                 : `${part.unit}s`;
-
-            // For multi-part, usually we want "1m 05s" instead of "1m 5s" for alignment?
-            // Or just rely on tabular nums?
-            // If I have 1m 9s -> 1m 10s. Width changes if I don't pad or reserve space.
-            // 1ch vs 2ch.
-            // logic `maxDigits` is 2 for seconds/minutes.
-            // So I should force `min-width` of 2ch.
-            // And maybe pad with zero visually?
-            // "05" vs " 5".
-            // I'll use `padStart(2, '0')` for the second component values (seconds, minutes in hours, etc).
-            // Actually, `formatDuration` returns numbers.
 
             let displayValue = part.value.toString();
             if (isMultiPart && part !== parts[0]) {

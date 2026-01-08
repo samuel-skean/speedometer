@@ -306,7 +306,9 @@ describe("Speedometer App", () => {
       throw new Error("watchErrorCallback was not set");
     }
 
-    expect(statusEl.textContent).toContain("permission denied");
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Location Denied");
+    expect(bodyText).toContain("Location services are disabled");
 
     watchPositionSpy.mockRestore();
   });
