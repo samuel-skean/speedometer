@@ -427,9 +427,28 @@ export function init(): void {
   const installInstructionsEl = document.getElementById("install-instructions");
   const iosInstructionsEl = document.getElementById("ios-instructions");
   const androidInstructionsEl = document.getElementById("android-instructions");
+  const scrollOverlayEl = document.querySelector(".scroll-overlay");
+  const infoContentEl = document.querySelector(".info-content");
 
   // Track if geolocation has been requested
   let geolocationStarted = false;
+
+  // Function to update the scroll overlay visibility
+  const updateScrollOverlay = () => {
+    if (!infoContentEl || !scrollOverlayEl) {
+      return;
+    }
+
+    const { scrollHeight, clientHeight, scrollTop } = infoContentEl;
+    const isScrollable = scrollHeight > clientHeight;
+    const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
+
+    if (isScrollable && !isAtBottom) {
+      scrollOverlayEl.classList.add("visible");
+    } else {
+      scrollOverlayEl.classList.remove("visible");
+    }
+  };
 
   if (infoPopoverEl && "showPopover" in infoPopoverEl) {
     // Show/hide install instructions based on OS
@@ -484,10 +503,16 @@ export function init(): void {
     };
 
     // Update on resize
-    window.addEventListener("resize", updateExitTarget);
+    window.addEventListener("resize", () => {
+      updateExitTarget();
+      updateScrollOverlay();
+    });
 
     // Update before opening when triggered by button
     infoBtnEl?.addEventListener("click", updateExitTarget);
+
+    // Attach scroll listener
+    infoContentEl?.addEventListener("scroll", updateScrollOverlay);
 
     const hasShownInfo = localStorage.getItem("info-popover-shown");
     const shouldShow = !hasShownInfo && !isStandalone();
@@ -516,6 +541,10 @@ export function init(): void {
       const toggleEvent = event as ToggleEvent;
       if (toggleEvent.newState === "open") {
         updateExitTarget();
+        // Check scroll overlay after a short delay to allow layout to settle if needed,
+        // or immediately if possible.
+        // Since popover is top layer, layout might happen immediately.
+        requestAnimationFrame(() => updateScrollOverlay());
       } else if (toggleEvent.newState === "closed") {
         updateExitTarget();
 
