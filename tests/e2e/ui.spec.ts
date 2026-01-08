@@ -10,49 +10,7 @@ test.describe("Speedometer UI & Layout", () => {
       // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
       (window as any).__TEST_MODE__ = true;
 
-      // 1. Mock GeolocationCoordinates.prototype.speed
-      // Ensure the global exists if missing
-      if (typeof GeolocationCoordinates === "undefined") {
-        // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
-        (window as any).GeolocationCoordinates = class {};
-      }
-
-      // We need to make sure the property is defined on the prototype so Object.getOwnPropertyDescriptor works
-      try {
-        // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
-        const proto = (window as any).GeolocationCoordinates.prototype;
-        // Check if it already has the property to avoid redefine errors if not configurable
-        const descriptor = Object.getOwnPropertyDescriptor(proto, "speed");
-        if (!descriptor) {
-          Object.defineProperty(proto, "speed", {
-            get: () => 0,
-            configurable: true,
-            enumerable: true,
-          });
-        }
-      } catch (e) {
-        console.error(
-          "Failed to mock GeolocationCoordinates.prototype.speed",
-          e,
-        );
-      }
-
-      // 2. Mock UserAgentData
-      if (!("userAgentData" in navigator)) {
-        Object.defineProperty(navigator, "userAgentData", {
-          get: () => ({ mobile: true }),
-          configurable: true,
-        });
-      } else {
-        // Override existing if needed, or assume environment is ok?
-        // In playwright browser, it might have it but empty or undefined mobile.
-        Object.defineProperty(navigator, "userAgentData", {
-          get: () => ({ mobile: true }),
-          configurable: true,
-        });
-      }
-
-      // 3. Mock Geolocation
+      // Mock Geolocation if missing (unlikely in Playwright but good fallback)
       if (!("geolocation" in navigator)) {
         // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
         (navigator as any).geolocation = {
@@ -62,14 +20,7 @@ test.describe("Speedometer UI & Layout", () => {
         };
       }
 
-      // Force User Agent to mobile if userAgentData is not enough (fallback)
-      Object.defineProperty(navigator, "userAgent", {
-        get: () =>
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
-        configurable: true,
-      });
-
-      // 3. Clear storage
+      // Clear storage
       localStorage.clear();
       // Prevent auto-opening of the popover to ensure consistent test state
       localStorage.setItem("info-popover-shown", "true");
