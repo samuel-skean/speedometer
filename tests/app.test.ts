@@ -172,6 +172,9 @@ describe("Speedometer App", () => {
       // Advance time by 1s (GPS_WARMUP_MS)
       vi.advanceTimersByTime(1000);
 
+      // Update timestamp to reflect elapsed time
+      mockPosition.timestamp = Date.now();
+
       // Send it again to trigger the update
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
@@ -218,11 +221,13 @@ describe("Speedometer App", () => {
 
       // Reading 2 (T=0.5s) -> Ignored
       vi.advanceTimersByTime(500);
+      mockPosition.timestamp = Date.now();
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
       expect(speedEl.textContent).toBe(PLACEHOLDER);
 
       // Reading 3 (T=1.0s) -> Accepted (>= GPS_WARMUP_MS)
       vi.advanceTimersByTime(500);
+      mockPosition.timestamp = Date.now();
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
       // 10 m/s * 2.23694 = 22.3694 -> 22
       expect(speedEl.textContent).toBe("22");
@@ -365,6 +370,7 @@ describe("Speedometer App", () => {
 
       // Advance past warmup
       vi.advanceTimersByTime(1000);
+      validPosition.timestamp = Date.now();
 
       // Second one accepted
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
