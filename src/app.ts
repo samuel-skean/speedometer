@@ -255,18 +255,18 @@ async function handleWakeLock(): Promise<void> {
 
 function handlePosition(pos: GeolocationPosition): void {
   const { speed, accuracy } = pos.coords;
-  console.log(`Got position data: speed: ${speed} accuracy: ${accuracy}.`);
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
+    const now = Date.now();
     if (firstSpeedTimestamp === null) {
-      firstSpeedTimestamp = pos.timestamp;
+      firstSpeedTimestamp = now;
     }
 
-    if (pos.timestamp - firstSpeedTimestamp >= GPS_WARMUP_MS) {
+    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
       lastSpeedMs = speed;
       renderSpeed(speed);
-      lastUpdateTimestamp = pos.timestamp;
+      lastUpdateTimestamp = now;
       if (warningEl) {
         warningEl.hidden = true;
       }
