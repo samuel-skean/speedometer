@@ -19,6 +19,7 @@ let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 let firstSpeedTimestamp: number | null = null;
+let lastHandlePositionTime: number | null = null;
 
 const GPS_WARMUP_MS = 1000;
 
@@ -254,11 +255,20 @@ async function handleWakeLock(): Promise<void> {
 }
 
 function handlePosition(pos: GeolocationPosition): void {
+  const now = Date.now();
+
+  if (lastHandlePositionTime !== null) {
+    const elapsed = now - lastHandlePositionTime;
+    if (elapsed > 1000) {
+      console.warn(`Time between handlePosition calls: ${elapsed}ms`);
+    }
+  }
+  lastHandlePositionTime = now;
+
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    const now = Date.now();
     if (firstSpeedTimestamp === null) {
       firstSpeedTimestamp = now;
     }
@@ -363,6 +373,7 @@ export function resetState(): void {
   lastUpdateTimestamp = 0;
   wakeLock = null;
   firstSpeedTimestamp = null;
+  lastHandlePositionTime = null;
 }
 
 export function init(): void {
