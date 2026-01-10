@@ -79,7 +79,12 @@ function updateUnitUI(): void {
 }
 
 // Render the speed (expects m/s)
-function renderSpeed(metersPerSecond: number): void {
+function renderSpeed(metersPerSecond: number | null): void {
+  if (metersPerSecond === null) {
+    showPlaceholder();
+    return;
+  }
+
   // Check validity
   if (!Number.isFinite(metersPerSecond) || metersPerSecond < 0) {
     setStatus("FIXME: Error");
@@ -267,8 +272,11 @@ function handlePosition(pos: GeolocationPosition): void {
 
   const { speed, accuracy } = pos.coords;
 
-  // Update speed only when native speed is provided and valid
-  if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
+  // Update speed only when native speed is provided and valid OR null
+  if (
+    speed === null ||
+    (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
+  ) {
     if (firstSpeedTimestamp === null) {
       firstSpeedTimestamp = now;
     }
