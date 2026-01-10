@@ -413,7 +413,9 @@ describe("Speedometer App", () => {
   });
 
   it("logs warning to console when handlePosition calls are > 1s apart", () => {
-    const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
     let watchSuccessCallback: PositionCallback | undefined;
 
     const watchPositionSpy = vi
@@ -446,7 +448,9 @@ describe("Speedometer App", () => {
       // Third call (T=1.6s from previous) - warning expected
       vi.advanceTimersByTime(1100);
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringMatching(/Time between handlePosition calls: 1100ms/));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Time between handlePosition calls: 1100ms/),
+      );
     } else {
       throw new Error("watchSuccessCallback was not set");
     }
