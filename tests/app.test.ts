@@ -356,4 +356,51 @@ describe("Speedometer App", () => {
     // This text is present in the rendered HTML regardless of which check failed.
     expect(bodyText).toContain("doesn't have built-in GPS hardware");
   });
+
+  it("logs warning to console when handlePosition calls are > 1s apart", () => {
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      // First call (T=0)
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      // Second call (T=0.5s) - no warning
+      vi.advanceTimersByTime(500);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      // Third call (T=1.6s from previous) - warning expected
+      vi.advanceTimersByTime(1100);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Time between handlePosition calls: 1100ms/),
+      );
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    watchPositionSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
 });

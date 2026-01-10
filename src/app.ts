@@ -19,6 +19,8 @@ let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 
+let lastHandlePositionTime: number | null = null;
+
 export const PLACEHOLDER = "———";
 
 const GITHUB_LINK_HTML = `
@@ -251,6 +253,16 @@ async function handleWakeLock(): Promise<void> {
 }
 
 function handlePosition(pos: GeolocationPosition): void {
+  const now = Date.now();
+
+  if (lastHandlePositionTime !== null) {
+    const elapsed = now - lastHandlePositionTime;
+    if (elapsed > 1000) {
+      console.warn(`Time between handlePosition calls: ${elapsed}ms`);
+    }
+  }
+  lastHandlePositionTime = now;
+
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
@@ -353,6 +365,7 @@ export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
   wakeLock = null;
+  lastHandlePositionTime = null;
 }
 
 export function init(): void {
