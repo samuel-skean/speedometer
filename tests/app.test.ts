@@ -166,13 +166,7 @@ describe("Speedometer App", () => {
 
     // Trigger the callback
     if (watchSuccessCallback) {
-      // First update starts the timer
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-
-      // Advance time by 1s (GPS_WARMUP_MS)
-      vi.advanceTimersByTime(1000);
-
-      // Send it again to trigger the update
+      // Send the update
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
@@ -187,48 +181,6 @@ describe("Speedometer App", () => {
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
     expect(speedEl.textContent).toBe("36");
-
-    watchPositionSpy.mockRestore();
-  });
-
-  it("ignores readings during warmup period", () => {
-    let watchSuccessCallback: PositionCallback | undefined;
-
-    const watchPositionSpy = vi
-      .spyOn(navigator.geolocation, "watchPosition")
-      .mockImplementation((success) => {
-        watchSuccessCallback = success;
-        return 1;
-      });
-
-    init();
-
-    const mockPosition = {
-      coords: {
-        speed: 10,
-        accuracy: 5,
-      },
-      timestamp: Date.now(),
-    };
-
-    if (watchSuccessCallback) {
-      // Reading 1 (T=0) -> Ignored
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      expect(speedEl.textContent).toBe(PLACEHOLDER);
-
-      // Reading 2 (T=0.5s) -> Ignored
-      vi.advanceTimersByTime(500);
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      expect(speedEl.textContent).toBe(PLACEHOLDER);
-
-      // Reading 3 (T=1.0s) -> Accepted (>= GPS_WARMUP_MS)
-      vi.advanceTimersByTime(500);
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      // 10 m/s * 2.23694 = 22.3694 -> 22
-      expect(speedEl.textContent).toBe("22");
-    } else {
-      throw new Error("watchSuccessCallback was not set");
-    }
 
     watchPositionSpy.mockRestore();
   });
@@ -360,13 +312,6 @@ describe("Speedometer App", () => {
       timestamp: Date.now(),
     };
     if (watchSuccessCallback) {
-      // First one ignored
-      watchSuccessCallback(validPosition as unknown as GeolocationPosition);
-
-      // Advance past warmup
-      vi.advanceTimersByTime(1000);
-
-      // Second one accepted
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
