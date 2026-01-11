@@ -266,13 +266,23 @@ function handlePosition(pos: GeolocationPosition): void {
   const { speed, accuracy } = pos.coords;
 
   // Update speed only when native speed is provided and valid
-  if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
+  // Treat "null" as a valid value (placeholder), regardless of previous state
+  const isValidSpeed = typeof speed === "number" && Number.isFinite(speed) && speed >= 0;
+  const isNullSpeed = speed === null;
+
+  if (isValidSpeed || isNullSpeed) {
     const now = Date.now();
-    lastSpeedMs = speed;
-    renderSpeed(speed);
     lastUpdateTimestamp = now;
     if (warningEl) {
       warningEl.hidden = true;
+    }
+
+    if (isValidSpeed) {
+      lastSpeedMs = speed;
+      renderSpeed(speed!);
+    } else {
+      lastSpeedMs = null;
+      showPlaceholder();
     }
   }
 
