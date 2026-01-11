@@ -436,6 +436,7 @@ export function init(): void {
   // Info/Warning popover logic
   const infoPopoverEl = document.getElementById("info-popover");
   const infoBtnEl = document.querySelector(".info-btn");
+  const infoActionBtn = document.getElementById("info-action-btn");
   const locationMsgEl = document.getElementById("vibe-location-msg");
   const installInstructionsEl = document.getElementById("install-instructions");
   const iosInstructionsEl = document.getElementById("ios-instructions");
@@ -527,15 +528,70 @@ export function init(): void {
     // Attach scroll listener
     infoContentEl?.addEventListener("scroll", updateScrollOverlay);
 
+    const updatePopoverUI = (state: PermissionState | "unknown") => {
+      if (!infoActionBtn) {
+        return;
+      }
+      if (state === "granted") {
+        infoActionBtn.textContent = "Got it";
+        infoActionBtn.dataset.action = "close";
+        if (locationMsgEl) {
+          locationMsgEl.hidden = true;
+        }
+      } else {
+        // prompt, denied, or unknown
+        infoActionBtn.textContent = "Ask for location permissions";
+        infoActionBtn.dataset.action = "ask";
+        if (locationMsgEl) {
+          locationMsgEl.hidden = false;
+        }
+      }
+    };
+
+    let permissionStatus: PermissionStatus | null = null;
+    const checkPermissions = async () => {
+      if ("permissions" in navigator) {
+        try {
+          permissionStatus = await navigator.permissions.query({
+            name: "geolocation",
+          });
+          updatePopoverUI(permissionStatus.state);
+          permissionStatus.onchange = () => {
+            updatePopoverUI(permissionStatus.state);
+          };
+        } catch (e) {
+          console.warn("Permissions API error", e);
+          updatePopoverUI("unknown");
+        }
+      } else {
+        updatePopoverUI("unknown");
+      }
+    };
+
+    // Check permissions immediately
+    checkPermissions();
+
+    // Button click handler
+    if (infoActionBtn) {
+      infoActionBtn.addEventListener("click", () => {
+        if (infoActionBtn.dataset.action === "close") {
+          (infoPopoverEl as unknown as PopoverElement).hidePopover();
+        } else {
+          // "Ask..."
+          geolocationStarted = true;
+          startGeolocation();
+          // Do not hide popover
+        }
+      });
+    }
+
     const hasShownInfo = localStorage.getItem("info-popover-shown");
     const shouldShow = !hasShownInfo && !isStandalone();
 
     // Only show automatically if not previously shown AND not installed as PWA
     if (shouldShow) {
-      // Unhide the location permission warning for the first run
-      if (locationMsgEl) {
-        locationMsgEl.hidden = false;
-      }
+      // NOTE: UI is updated by checkPermissions async, but message defaults hidden.
+      // We rely on checkPermissions to show it if needed.
 
       (infoPopoverEl as unknown as PopoverElement).showPopover();
       // Calculate immediately, waiting for layout
@@ -558,13 +614,13 @@ export function init(): void {
         // or immediately if possible.
         // Since popover is top layer, layout might happen immediately.
         requestAnimationFrame(() => updateScrollOverlay());
+
+        // Refresh permissions check
+        checkPermissions();
       } else if (toggleEvent.newState === "closed") {
         updateExitTarget();
 
-        // Ensure message is hidden for future opens
-        if (locationMsgEl) {
-          locationMsgEl.hidden = true;
-        }
+        // Don't forcefully hide message here, let updatePopoverUI handle state.
 
         localStorage.setItem("info-popover-shown", "true");
 
