@@ -20,6 +20,7 @@ let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
 let firstSpeedTimestamp: number | null = null;
 let lastHandlePositionTime: number | null = null;
+let onLocationSuccess: (() => void) | null = null;
 
 const GPS_WARMUP_MS = 1000;
 
@@ -260,6 +261,10 @@ async function handleWakeLock(): Promise<void> {
 }
 
 function handlePosition(pos: GeolocationPosition): void {
+  if (onLocationSuccess) {
+    onLocationSuccess();
+  }
+
   const now = Date.now();
 
   if (lastHandlePositionTime !== null) {
@@ -570,6 +575,13 @@ export function init(): void {
 
     // Check permissions immediately
     checkPermissions();
+
+    // Set up location success callback to update UI when permission is granted
+    onLocationSuccess = () => {
+      updatePopoverUI("granted");
+      // Optionally re-check via API to ensure sync
+      checkPermissions();
+    };
 
     // Button click handler
     if (infoActionBtn) {
