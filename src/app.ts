@@ -267,7 +267,7 @@ function handlePosition(pos: GeolocationPosition): void {
 
   if (lastHandlePositionTime !== null) {
     const elapsed = now - lastHandlePositionTime;
-    if (elapsed > 1500) {
+    if (elapsed > 1100) {
       console.warn(`Time between handlePosition calls: ${elapsed}ms`);
     }
   }
