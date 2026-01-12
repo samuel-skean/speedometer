@@ -468,6 +468,23 @@ button.landscape-unit {
   box-sizing: border-box;
 }
 
+.unknown-speed-msg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  color: light-dark(#111, #eee);
+  text-align: center;
+  padding: max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right)) 10px
+    max(10px, env(safe-area-inset-left));
+  font-weight: bold;
+  z-index: 999;
+  font-size: 1.2em;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
 .warning-digits {
   display: inline-block;
   text-align: right;
@@ -545,6 +562,9 @@ button.landscape-unit {
   </head>
   <body>
     <div id="warning" class="warning" hidden>Speed data is old</div>
+    <div id="unknown-speed-msg" class="unknown-speed-msg" hidden>
+      The speed is unknown. This often happens when the phone is still.
+    </div>
 
     <div class="container">
       <div
