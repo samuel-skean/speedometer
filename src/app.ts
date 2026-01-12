@@ -12,6 +12,7 @@ let statusEl: HTMLDivElement;
 let unitBtns: NodeListOf<HTMLButtonElement>;
 let keepScreenOnEl: HTMLInputElement;
 let warningEl: HTMLDivElement;
+let unknownSpeedMsgEl: HTMLDivElement;
 
 // Mutable state
 let currentUnit: Unit;
@@ -274,6 +275,25 @@ function handlePosition(pos: GeolocationPosition): void {
     if (warningEl) {
       warningEl.hidden = true;
     }
+    if (unknownSpeedMsgEl) {
+      unknownSpeedMsgEl.hidden = true;
+    }
+  } else if (speed === null) {
+    // Valid location update but no speed (e.g. stationary or not determined yet)
+    // We treat this as a "fresh" update to prevent the stale data warning,
+    // but we show the "Unknown Speed" message.
+    const now = Date.now();
+    lastUpdateTimestamp = now;
+
+    // Show placeholder speed
+    showPlaceholder();
+
+    if (warningEl) {
+      warningEl.hidden = true;
+    }
+    if (unknownSpeedMsgEl) {
+      unknownSpeedMsgEl.hidden = false;
+    }
   }
 
   // Status/accuracy
@@ -333,6 +353,10 @@ function startGeolocation(): void {
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
+          // Hide unknown speed message if warning is shown (priority)
+          if (unknownSpeedMsgEl) {
+            unknownSpeedMsgEl.hidden = true;
+          }
 
           const parts = formatDuration(diff);
 
@@ -404,6 +428,12 @@ export function init(): void {
     throw new Error("Warning element not found");
   }
   warningEl = warningElNullable as HTMLDivElement;
+
+  const unknownSpeedMsgElNullable = document.getElementById("unknown-speed-msg");
+  if (!unknownSpeedMsgElNullable) {
+    throw new Error("Unknown speed message element not found");
+  }
+  unknownSpeedMsgEl = unknownSpeedMsgElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
   const storedUnit = localStorage.getItem("speed-unit");
