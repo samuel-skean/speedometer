@@ -8,6 +8,7 @@ describe("Speedometer App", () => {
   let unitBtn: HTMLElement;
   let keepScreenOnEl: HTMLInputElement;
   let warningEl: HTMLElement;
+  let unknownSpeedEl: HTMLElement;
   let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
@@ -16,6 +17,7 @@ describe("Speedometer App", () => {
     // Reset DOM
     document.body.innerHTML = `
       <div id="warning" class="warning" hidden>Speed data is old</div>
+      <div id="unknown-speed-msg" class="unknown-speed-msg" hidden>The speed is unknown. This often happens when the phone is still.</div>
       <div class="container">
           <div
             id="speed"
@@ -63,6 +65,12 @@ describe("Speedometer App", () => {
       throw new Error("Warning element not found");
     }
     warningEl = warningElNullable;
+
+    const unknownSpeedElNullable = document.getElementById("unknown-speed-msg");
+    if (!unknownSpeedElNullable) {
+      throw new Error("Unknown speed element not found");
+    }
+    unknownSpeedEl = unknownSpeedElNullable;
 
     // Enable test mode by default
     // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
@@ -168,12 +176,6 @@ describe("Speedometer App", () => {
     if (watchSuccessCallback) {
       // First update starts the timer
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-
-      // Advance time by 1s (GPS_WARMUP_MS)
-      vi.advanceTimersByTime(1000);
-
-      // Send it again to trigger the update
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
     }
@@ -187,48 +189,6 @@ describe("Speedometer App", () => {
     // 10 m/s * 3.6 = 36 km/h
     fireEvent.click(unitBtn);
     expect(speedEl.textContent).toBe("36");
-
-    watchPositionSpy.mockRestore();
-  });
-
-  it("ignores readings during warmup period", () => {
-    let watchSuccessCallback: PositionCallback | undefined;
-
-    const watchPositionSpy = vi
-      .spyOn(navigator.geolocation, "watchPosition")
-      .mockImplementation((success) => {
-        watchSuccessCallback = success;
-        return 1;
-      });
-
-    init();
-
-    const mockPosition = {
-      coords: {
-        speed: 10,
-        accuracy: 5,
-      },
-      timestamp: Date.now(),
-    };
-
-    if (watchSuccessCallback) {
-      // Reading 1 (T=0) -> Ignored
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      expect(speedEl.textContent).toBe(PLACEHOLDER);
-
-      // Reading 2 (T=0.5s) -> Ignored
-      vi.advanceTimersByTime(500);
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      expect(speedEl.textContent).toBe(PLACEHOLDER);
-
-      // Reading 3 (T=1.0s) -> Accepted (>= GPS_WARMUP_MS)
-      vi.advanceTimersByTime(500);
-      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
-      // 10 m/s * 2.23694 = 22.3694 -> 22
-      expect(speedEl.textContent).toBe("22");
-    } else {
-      throw new Error("watchSuccessCallback was not set");
-    }
 
     watchPositionSpy.mockRestore();
   });
@@ -259,10 +219,27 @@ describe("Speedometer App", () => {
       throw new Error("watchSuccessCallback was not set");
     }
 
-    // Should remain placeholder if speed is null (no update logic triggered for null speed in app.ts)
-    // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
+    // Should remain placeholder if speed is null
     expect(speedEl.textContent).toBe(PLACEHOLDER);
     expect(speedEl.dataset.placeholderVisible).toBe("true");
+
+    // The unknown speed message should be visible
+    expect(unknownSpeedEl.hidden).toBe(false);
+
+    // Update with valid speed
+    const mockPosition2 = {
+      coords: {
+        speed: 5,
+        accuracy: 10,
+      },
+      timestamp: Date.now(),
+    };
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition2 as unknown as GeolocationPosition);
+    }
+
+    // Message should be hidden
+    expect(unknownSpeedEl.hidden).toBe(true);
 
     watchPositionSpy.mockRestore();
   });
@@ -360,13 +337,6 @@ describe("Speedometer App", () => {
       timestamp: Date.now(),
     };
     if (watchSuccessCallback) {
-      // First one ignored
-      watchSuccessCallback(validPosition as unknown as GeolocationPosition);
-
-      // Advance past warmup
-      vi.advanceTimersByTime(1000);
-
-      // Second one accepted
       watchSuccessCallback(validPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
@@ -457,5 +427,45 @@ describe("Speedometer App", () => {
 
     watchPositionSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+  });
+
+  it("hides unknown speed message when data becomes stale", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    // 1. Receive null speed (fresh)
+    const mockPosition = {
+      coords: {
+        speed: null,
+        accuracy: 10,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    // Verify unknown speed message is visible
+    expect(unknownSpeedEl.hidden).toBe(false);
+    expect(warningEl.hidden).toBe(true);
+
+    // 2. Advance time by 6 seconds (making it stale)
+    vi.advanceTimersByTime(6000);
+
+    // Verify warning is visible AND unknown speed message is HIDDEN
+    expect(warningEl.hidden).toBe(false);
+    expect(unknownSpeedEl.hidden).toBe(true);
+
+    watchPositionSpy.mockRestore();
   });
 });

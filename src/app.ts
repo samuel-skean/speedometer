@@ -12,16 +12,15 @@ let statusEl: HTMLDivElement;
 let unitBtns: NodeListOf<HTMLButtonElement>;
 let keepScreenOnEl: HTMLInputElement;
 let warningEl: HTMLDivElement;
+let unknownSpeedEl: HTMLDivElement;
 
 // Mutable state
 let currentUnit: Unit;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
-let firstSpeedTimestamp: number | null = null;
 let lastHandlePositionTime: number | null = null;
-
-const GPS_WARMUP_MS = 1000;
+let onLocationSuccess: (() => void) | null = null;
 
 export const PLACEHOLDER = "———";
 
@@ -260,6 +259,10 @@ async function handleWakeLock(): Promise<void> {
 }
 
 function handlePosition(pos: GeolocationPosition): void {
+  if (onLocationSuccess) {
+    onLocationSuccess();
+  }
+
   const now = Date.now();
 
   if (lastHandlePositionTime !== null) {
@@ -277,17 +280,14 @@ function handlePosition(pos: GeolocationPosition): void {
     speed === null ||
     (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
   ) {
-    if (firstSpeedTimestamp === null) {
-      firstSpeedTimestamp = now;
+    lastSpeedMs = speed;
+    renderSpeed(speed);
+    lastUpdateTimestamp = now;
+    if (warningEl) {
+      warningEl.hidden = true;
     }
-
-    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
-      lastSpeedMs = speed;
-      renderSpeed(speed);
-      lastUpdateTimestamp = now;
-      if (warningEl) {
-        warningEl.hidden = true;
-      }
+    if (unknownSpeedEl) {
+      unknownSpeedEl.hidden = speed !== null;
     }
   }
 
@@ -348,6 +348,10 @@ function startGeolocation(): void {
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
+          // Hide unknown speed message when data is stale (warning takes precedence)
+          if (unknownSpeedEl) {
+            unknownSpeedEl.hidden = true;
+          }
 
           const parts = formatDuration(diff);
 
@@ -380,7 +384,6 @@ export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
   wakeLock = null;
-  firstSpeedTimestamp = null;
   lastHandlePositionTime = null;
 }
 
@@ -421,6 +424,12 @@ export function init(): void {
   }
   warningEl = warningElNullable as HTMLDivElement;
 
+  const unknownSpeedElNullable = document.getElementById("unknown-speed-msg");
+  if (!unknownSpeedElNullable) {
+    throw new Error("Unknown speed element not found");
+  }
+  unknownSpeedEl = unknownSpeedElNullable as HTMLDivElement;
+
   // Initialize state from local storage or default
   const storedUnit = localStorage.getItem("speed-unit");
   if (storedUnit === "MPH") {
@@ -436,6 +445,7 @@ export function init(): void {
   // Info/Warning popover logic
   const infoPopoverEl = document.getElementById("info-popover");
   const infoBtnEl = document.querySelector(".info-btn");
+  const infoActionBtn = document.getElementById("info-action-btn");
   const locationMsgEl = document.getElementById("vibe-location-msg");
   const installInstructionsEl = document.getElementById("install-instructions");
   const iosInstructionsEl = document.getElementById("ios-instructions");
@@ -527,15 +537,77 @@ export function init(): void {
     // Attach scroll listener
     infoContentEl?.addEventListener("scroll", updateScrollOverlay);
 
+    const updatePopoverUI = (state: PermissionState | "unknown") => {
+      if (!infoActionBtn) {
+        return;
+      }
+      if (state === "granted") {
+        infoActionBtn.textContent = "Got it";
+        infoActionBtn.dataset.action = "close";
+        if (locationMsgEl) {
+          locationMsgEl.hidden = true;
+        }
+      } else {
+        // prompt, denied, or unknown
+        infoActionBtn.textContent = "Ask for location permissions";
+        infoActionBtn.dataset.action = "ask";
+        if (locationMsgEl) {
+          locationMsgEl.hidden = false;
+        }
+      }
+    };
+
+    let permissionStatus: PermissionStatus | null = null;
+    const checkPermissions = async () => {
+      if ("permissions" in navigator) {
+        try {
+          permissionStatus = await navigator.permissions.query({
+            name: "geolocation",
+          });
+          updatePopoverUI(permissionStatus.state);
+          permissionStatus.onchange = () => {
+            updatePopoverUI(permissionStatus.state);
+          };
+        } catch (e) {
+          console.warn("Permissions API error", e);
+          updatePopoverUI("unknown");
+        }
+      } else {
+        updatePopoverUI("unknown");
+      }
+    };
+
+    // Check permissions immediately
+    checkPermissions();
+
+    // Set up location success callback to update UI when permission is granted
+    onLocationSuccess = () => {
+      updatePopoverUI("granted");
+      // Optionally re-check via API to ensure sync
+      checkPermissions();
+    };
+
+    // Button click handler
+    if (infoActionBtn) {
+      infoActionBtn.addEventListener("click", () => {
+        if (infoActionBtn.dataset.action === "close") {
+          (infoPopoverEl as unknown as PopoverElement).hidePopover();
+        } else {
+          // "Ask..."
+          geolocationStarted = true;
+          startGeolocation();
+          // Do not hide popover
+        }
+      });
+    }
+
     const hasShownInfo = localStorage.getItem("info-popover-shown");
     const shouldShow = !hasShownInfo && !isStandalone();
 
     // Only show automatically if not previously shown AND not installed as PWA
     if (shouldShow) {
-      // Unhide the location permission warning for the first run
-      if (locationMsgEl) {
-        locationMsgEl.hidden = false;
-      }
+      // NOTE: UI is updated by checkPermissions async, but message defaults hidden.
+      // We rely on checkPermissions to show it if needed.
 
       (infoPopoverEl as unknown as PopoverElement).showPopover();
       // Calculate immediately, waiting for layout
@@ -558,13 +630,13 @@ export function init(): void {
         // or immediately if possible.
         // Since popover is top layer, layout might happen immediately.
         requestAnimationFrame(() => updateScrollOverlay());
+
+        // Refresh permissions check
+        checkPermissions();
       } else if (toggleEvent.newState === "closed") {
         updateExitTarget();
 
-        // Ensure message is hidden for future opens
-        if (locationMsgEl) {
-          locationMsgEl.hidden = true;
-        }
+        // Don't forcefully hide message here, let updatePopoverUI handle state.
 
         localStorage.setItem("info-popover-shown", "true");
 
