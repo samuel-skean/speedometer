@@ -193,7 +193,6 @@ describe("Speedometer App", () => {
     watchPositionSpy.mockRestore();
   });
 
-
   it("handles invalid speed data", () => {
     let watchSuccessCallback: PositionCallback | undefined;
     const watchPositionSpy = vi
