@@ -348,6 +348,10 @@ function startGeolocation(): void {
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
+          // Hide unknown speed message when data is stale (warning takes precedence)
+          if (unknownSpeedEl) {
+            unknownSpeedEl.hidden = true;
+          }
 
           const parts = formatDuration(diff);
 

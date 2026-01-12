@@ -110,86 +110,6 @@ button.landscape-unit {
   display: none;
 }
 
-@media (orientation: landscape) {
-  .container {
-    justify-content: center;
-  }
-
-  .speed {
-    /*
-      Maximize speed size in landscape.
-      Constraint 1: Height. Leave room for warning bar (top) and controls (bottom).
-      Constraint 2: Width. Must fit 3 digits (3em width).
-    */
-    font-size: min(32vw, 65svh);
-    line-height: 0.8;
-    margin: auto;
-    /* Move down to avoid clipping at the top */
-    transform: translateY(8vh);
-  }
-
-  /* Hide the portrait unit button */
-  .container button.unit {
-    display: none;
-  }
-
-  /* Show landscape unit button */
-  .status-container button.unit {
-    display: block;
-    margin: 0;
-    padding: 6px 10px;
-    font-size: 16px;
-    /* Reset portrait margins */
-    margin-left: 12px;
-  }
-
-  /* Layout for status and unit button side-by-side */
-  .status-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    pointer-events: auto;
-  }
-
-  .status {
-    /* Fixed min-width to prevent shifting when text changes "Accuracy: 5m" vs "100m" */
-    min-width: 140px;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .bottom-bar {
-    /* Reduce padding to give more space to speed */
-    padding-top: 4px;
-    padding-bottom: max(4px, env(safe-area-inset-bottom));
-  }
-
-  .top-messages-container {
-    display: block;
-  }
-
-  .warning {
-    position: absolute;
-    top: 0;
-    left: 0;
-    /* Shrink warning in landscape */
-    font-size: 10px;
-    padding: max(0px, env(safe-area-inset-top))
-      max(10px, env(safe-area-inset-right)) 1px
-      max(10px, env(safe-area-inset-left));
-    line-height: 1.0;
-    opacity: 1;
-  }
-
-  .unknown-speed-msg {
-    position: absolute;
-    top: 0;
-    left: 0;
-  }
-}
-
 .bottom-bar {
   width: 100%;
   display: grid;
@@ -567,6 +487,86 @@ button.landscape-unit {
 @media (orientation: landscape) and (display-mode: standalone) {
   .info-popover {
     max-width: 350px;
+  }
+}
+
+@media (orientation: landscape) {
+  .container {
+    justify-content: center;
+  }
+
+  .speed {
+    /*
+      Maximize speed size in landscape.
+      Constraint 1: Height. Leave room for warning bar (top) and controls (bottom).
+      Constraint 2: Width. Must fit 3 digits (3em width).
+    */
+    font-size: min(32vw, 65svh);
+    line-height: 0.8;
+    margin: auto;
+    /* Move down to avoid clipping at the top */
+    transform: translateY(8vh);
+  }
+
+  /* Hide the portrait unit button */
+  .container button.unit {
+    display: none;
+  }
+
+  /* Show landscape unit button */
+  .status-container button.unit {
+    display: block;
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 16px;
+    /* Reset portrait margins */
+    margin-left: 12px;
+  }
+
+  /* Layout for status and unit button side-by-side */
+  .status-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .status {
+    /* Fixed min-width to prevent shifting when text changes "Accuracy: 5m" vs "100m" */
+    min-width: 140px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .bottom-bar {
+    /* Reduce padding to give more space to speed */
+    padding-top: 4px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .top-messages-container {
+    display: block;
+  }
+
+  .warning {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Shrink warning in landscape */
+    font-size: 10px;
+    padding: max(0px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right)) 1px
+      max(10px, env(safe-area-inset-left));
+    line-height: 1.0;
+    opacity: 1;
+  }
+
+  .unknown-speed-msg {
+    position: absolute;
+    top: 0;
+    left: 0;
   }
 }
     </style>
