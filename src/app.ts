@@ -12,17 +12,15 @@ let statusEl: HTMLDivElement;
 let unitBtns: NodeListOf<HTMLButtonElement>;
 let keepScreenOnEl: HTMLInputElement;
 let warningEl: HTMLDivElement;
+let unknownSpeedEl: HTMLDivElement;
 
 // Mutable state
 let currentUnit: Unit;
 let lastSpeedMs: number | null = null; // last known native speed (m/s), if any
 let lastUpdateTimestamp = 0;
 let wakeLock: WakeLockSentinel | null = null;
-let firstSpeedTimestamp: number | null = null;
 let lastHandlePositionTime: number | null = null;
 let onLocationSuccess: (() => void) | null = null;
-
-const GPS_WARMUP_MS = 1000;
 
 export const PLACEHOLDER = "———";
 
@@ -282,17 +280,14 @@ function handlePosition(pos: GeolocationPosition): void {
     speed === null ||
     (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
   ) {
-    if (firstSpeedTimestamp === null) {
-      firstSpeedTimestamp = now;
+    lastSpeedMs = speed;
+    renderSpeed(speed);
+    lastUpdateTimestamp = now;
+    if (warningEl) {
+      warningEl.hidden = true;
     }
-
-    if (now - firstSpeedTimestamp >= GPS_WARMUP_MS) {
-      lastSpeedMs = speed;
-      renderSpeed(speed);
-      lastUpdateTimestamp = now;
-      if (warningEl) {
-        warningEl.hidden = true;
-      }
+    if (unknownSpeedEl) {
+      unknownSpeedEl.hidden = speed !== null;
     }
   }
 
@@ -353,6 +348,10 @@ function startGeolocation(): void {
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
+          // Hide unknown speed message when data is stale (warning takes precedence)
+          if (unknownSpeedEl) {
+            unknownSpeedEl.hidden = true;
+          }
 
           const parts = formatDuration(diff);
 
@@ -385,7 +384,6 @@ export function resetState(): void {
   lastSpeedMs = null;
   lastUpdateTimestamp = 0;
   wakeLock = null;
-  firstSpeedTimestamp = null;
   lastHandlePositionTime = null;
 }
 
@@ -425,6 +423,12 @@ export function init(): void {
     throw new Error("Warning element not found");
   }
   warningEl = warningElNullable as HTMLDivElement;
+
+  const unknownSpeedElNullable = document.getElementById("unknown-speed-msg");
+  if (!unknownSpeedElNullable) {
+    throw new Error("Unknown speed element not found");
+  }
+  unknownSpeedEl = unknownSpeedElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
   const storedUnit = localStorage.getItem("speed-unit");

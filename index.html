@@ -110,73 +110,6 @@ button.landscape-unit {
   display: none;
 }
 
-@media (orientation: landscape) {
-  .container {
-    justify-content: center;
-  }
-
-  .speed {
-    /*
-      Maximize speed size in landscape.
-      Constraint 1: Height. Leave room for warning bar (top) and controls (bottom).
-      Constraint 2: Width. Must fit 3 digits (3em width).
-    */
-    font-size: min(32vw, 65svh);
-    line-height: 0.8;
-    margin: auto;
-    /* Move down to avoid clipping at the top */
-    transform: translateY(8vh);
-  }
-
-  /* Hide the portrait unit button */
-  .container button.unit {
-    display: none;
-  }
-
-  /* Show landscape unit button */
-  .status-container button.unit {
-    display: block;
-    margin: 0;
-    padding: 6px 10px;
-    font-size: 16px;
-    /* Reset portrait margins */
-    margin-left: 12px;
-  }
-
-  /* Layout for status and unit button side-by-side */
-  .status-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    pointer-events: auto;
-  }
-
-  .status {
-    /* Fixed min-width to prevent shifting when text changes "Accuracy: 5m" vs "100m" */
-    min-width: 140px;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .bottom-bar {
-    /* Reduce padding to give more space to speed */
-    padding-top: 4px;
-    padding-bottom: max(4px, env(safe-area-inset-bottom));
-  }
-
-  .warning {
-    /* Shrink warning in landscape */
-    font-size: 10px;
-    padding: max(0px, env(safe-area-inset-top))
-      max(10px, env(safe-area-inset-right)) 1px
-      max(10px, env(safe-area-inset-left));
-    line-height: 1.0;
-    opacity: 0.9;
-  }
-}
-
 .bottom-bar {
   width: 100%;
   display: grid;
@@ -451,10 +384,20 @@ button.landscape-unit {
     display: none;
   }
 }
-.warning {
+.top-messages-container {
   position: fixed;
   top: 0;
   left: 0;
+  width: 100%;
+  z-index: 2000;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.warning {
+  position: relative;
+  z-index: 2;
   width: 100%;
   background-color: #ff9800;
   color: #000;
@@ -463,9 +406,28 @@ button.landscape-unit {
     max(10px, env(safe-area-inset-right)) 10px
     max(10px, env(safe-area-inset-left));
   font-weight: bold;
-  z-index: 1000;
   font-size: 1.2em;
   box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.unknown-speed-msg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  color: light-dark(#111, #eee);
+  text-align: center;
+  padding: max(10px, env(safe-area-inset-top))
+    max(10px, env(safe-area-inset-right)) 10px
+    max(10px, env(safe-area-inset-left));
+  font-weight: bold;
+  font-size: 1.2em;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.warning:not([hidden]) + .unknown-speed-msg {
+  padding-top: 0;
 }
 
 .warning-digits {
@@ -527,6 +489,86 @@ button.landscape-unit {
     max-width: 350px;
   }
 }
+
+@media (orientation: landscape) {
+  .container {
+    justify-content: center;
+  }
+
+  .speed {
+    /*
+      Maximize speed size in landscape.
+      Constraint 1: Height. Leave room for warning bar (top) and controls (bottom).
+      Constraint 2: Width. Must fit 3 digits (3em width).
+    */
+    font-size: min(32vw, 65svh);
+    line-height: 0.8;
+    margin: auto;
+    /* Move down to avoid clipping at the top */
+    transform: translateY(8vh);
+  }
+
+  /* Hide the portrait unit button */
+  .container button.unit {
+    display: none;
+  }
+
+  /* Show landscape unit button */
+  .status-container button.unit {
+    display: block;
+    margin: 0;
+    padding: 6px 10px;
+    font-size: 16px;
+    /* Reset portrait margins */
+    margin-left: 12px;
+  }
+
+  /* Layout for status and unit button side-by-side */
+  .status-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: auto;
+  }
+
+  .status {
+    /* Fixed min-width to prevent shifting when text changes "Accuracy: 5m" vs "100m" */
+    min-width: 140px;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .bottom-bar {
+    /* Reduce padding to give more space to speed */
+    padding-top: 4px;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .top-messages-container {
+    display: block;
+  }
+
+  .warning {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Shrink warning in landscape */
+    font-size: 10px;
+    padding: max(0px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right)) 1px
+      max(10px, env(safe-area-inset-left));
+    line-height: 1.0;
+    opacity: 1;
+  }
+
+  .unknown-speed-msg {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
     </style>
     <link rel="icon" href="./icons/icon-512.png" />
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -544,7 +586,12 @@ button.landscape-unit {
     />
   </head>
   <body>
-    <div id="warning" class="warning" hidden>Speed data is old</div>
+    <div class="top-messages-container">
+      <div id="warning" class="warning" hidden>Speed data is old</div>
+      <div id="unknown-speed-msg" class="unknown-speed-msg" hidden>
+        The speed is unknown. This often happens when the phone is still.
+      </div>
+    </div>
 
     <div class="container">
       <div
