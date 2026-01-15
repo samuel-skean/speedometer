@@ -296,6 +296,17 @@ function handlePosition(pos: GeolocationPosition): void {
     }
   }
 
+  // Update action button if waiting for permission
+  const actionBtn = document.getElementById("info-action-btn");
+  const locationMsgEl = document.getElementById("vibe-location-msg");
+  if (actionBtn && actionBtn.dataset.action === "ask") {
+    actionBtn.textContent = "Got it";
+    actionBtn.dataset.action = "close";
+    if (locationMsgEl) {
+      locationMsgEl.textContent = "Location access granted!";
+    }
+  }
+
   // Status/accuracy
   if (typeof accuracy === "number" && Number.isFinite(accuracy)) {
     setStatus(`Accuracy: ±${Math.round(accuracy)}m`);
@@ -540,6 +551,22 @@ export function init(): void {
 
     // Attach scroll listener
     infoContentEl?.addEventListener("scroll", updateScrollOverlay);
+
+    // Handle action button click
+    const actionBtn = document.getElementById("info-action-btn");
+    if (actionBtn) {
+      actionBtn.addEventListener("click", () => {
+        const action = actionBtn.dataset.action;
+        if (action === "ask") {
+          actionBtn.textContent = "Waiting...";
+          // Mark as started so we don't start again in toggle listener
+          geolocationStarted = true;
+          startGeolocation();
+        } else if (action === "close") {
+          (infoPopoverEl as unknown as PopoverElement).hidePopover();
+        }
+      });
+    }
 
     const hasShownInfo = localStorage.getItem("info-popover-shown");
     const shouldShow = !hasShownInfo && !isStandalone();

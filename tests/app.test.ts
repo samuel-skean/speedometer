@@ -18,7 +18,7 @@ describe("Speedometer App", () => {
     document.body.innerHTML = `
       <div class="top-messages-container">
         <div id="warning" class="warning pill" hidden>Speed data is old</div>
-        <div id="unknown-speed-msg" class="warning pill" hidden>Unknown Speed</div>
+        <div id="unknown-speed-msg" hidden>Speed is unknown.</div>
       </div>
       <div class="container">
           <div

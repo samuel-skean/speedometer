@@ -481,6 +481,25 @@ button.landscape-unit {
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+#unknown-speed-msg {
+  font-weight: bold;
+  font-size: 1.2em;
+  text-align: center;
+  padding: 8px 16px;
+  width: 100%;
+  box-sizing: border-box;
+  color: #111; /* Fallback */
+  color: light-dark(#111, #eee);
+  pointer-events: auto;
+}
+
+@media (orientation: portrait) {
+  /* Reserve space for warning if it is hidden so unknown speed msg stays in position */
+  #warning[hidden] + #unknown-speed-msg {
+    margin-top: 50px;
+  }
+}
+
 .warning-digits {
   display: inline-block;
   text-align: right;
@@ -559,7 +578,7 @@ button.landscape-unit {
   <body>
     <div class="top-messages-container">
       <div id="warning" class="warning pill" hidden>Speed data is old</div>
-      <div id="unknown-speed-msg" class="warning pill" hidden>Unknown Speed</div>
+      <div id="unknown-speed-msg" hidden>Speed is unknown.</div>
     </div>
 
     <div class="container">
@@ -665,11 +684,11 @@ button.landscape-unit {
           The layout is optimized for modern iPhones, but works on most devices.
         </p>
         <p id="vibe-location-msg" hidden>
-            We'll ask for location permissions now.
+            Please enable location access to continue.
         </p>
         <div class="info-actions">
-            <button popovertarget="info-popover" popovertargetaction="hide">
-                Got it
+            <button id="info-action-btn" data-action="ask">
+                Enable Location
             </button>
         </div>
       </div>
