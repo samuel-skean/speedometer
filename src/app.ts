@@ -12,6 +12,7 @@ let statusEl: HTMLDivElement;
 let unitBtns: NodeListOf<HTMLButtonElement>;
 let keepScreenOnEl: HTMLInputElement;
 let warningEl: HTMLDivElement;
+let unknownSpeedMsgEl: HTMLDivElement;
 
 // Mutable state
 let currentUnit: Unit;
@@ -274,6 +275,36 @@ function handlePosition(pos: GeolocationPosition): void {
     if (warningEl) {
       warningEl.hidden = true;
     }
+    if (unknownSpeedMsgEl) {
+      unknownSpeedMsgEl.hidden = true;
+    }
+  } else if (speed === null) {
+    // Valid location update but no speed (e.g. stationary or not determined yet)
+    // We treat this as a "fresh" update to prevent the stale data warning,
+    // but we show the "Unknown Speed" message.
+    const now = Date.now();
+    lastUpdateTimestamp = now;
+
+    // Show placeholder speed
+    showPlaceholder();
+
+    if (warningEl) {
+      warningEl.hidden = true;
+    }
+    if (unknownSpeedMsgEl) {
+      unknownSpeedMsgEl.hidden = false;
+    }
+  }
+
+  // Update action button if waiting for permission
+  const actionBtn = document.getElementById("info-action-btn");
+  const locationMsgEl = document.getElementById("vibe-location-msg");
+  if (actionBtn && actionBtn.dataset.action === "ask") {
+    actionBtn.textContent = "Got it";
+    actionBtn.dataset.action = "close";
+    if (locationMsgEl) {
+      locationMsgEl.textContent = "Location access granted!";
+    }
   }
 
   // Status/accuracy
@@ -333,6 +364,10 @@ function startGeolocation(): void {
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
           warningEl.hidden = false;
+          // Hide unknown speed message if warning is shown (priority)
+          if (unknownSpeedMsgEl) {
+            unknownSpeedMsgEl.hidden = true;
+          }
 
           const parts = formatDuration(diff);
 
@@ -404,6 +439,12 @@ export function init(): void {
     throw new Error("Warning element not found");
   }
   warningEl = warningElNullable as HTMLDivElement;
+
+  const unknownSpeedMsgElNullable = document.getElementById("unknown-speed-msg");
+  if (!unknownSpeedMsgElNullable) {
+    throw new Error("Unknown speed message element not found");
+  }
+  unknownSpeedMsgEl = unknownSpeedMsgElNullable as HTMLDivElement;
 
   // Initialize state from local storage or default
   const storedUnit = localStorage.getItem("speed-unit");
@@ -510,6 +551,22 @@ export function init(): void {
 
     // Attach scroll listener
     infoContentEl?.addEventListener("scroll", updateScrollOverlay);
+
+    // Handle action button click
+    const actionBtn = document.getElementById("info-action-btn");
+    if (actionBtn) {
+      actionBtn.addEventListener("click", () => {
+        const action = actionBtn.dataset.action;
+        if (action === "ask") {
+          actionBtn.textContent = "Waiting...";
+          // Mark as started so we don't start again in toggle listener
+          geolocationStarted = true;
+          startGeolocation();
+        } else if (action === "close") {
+          (infoPopoverEl as unknown as PopoverElement).hidePopover();
+        }
+      });
+    }
 
     const hasShownInfo = localStorage.getItem("info-popover-shown");
     const shouldShow = !hasShownInfo && !isStandalone();
