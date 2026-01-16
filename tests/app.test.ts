@@ -8,7 +8,6 @@ describe("Speedometer App", () => {
   let unitBtn: HTMLElement;
   let keepScreenOnEl: HTMLInputElement;
   let warningEl: HTMLElement;
-  let unknownSpeedMsgEl: HTMLElement;
   let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
@@ -68,11 +67,11 @@ describe("Speedometer App", () => {
     }
     warningEl = warningElNullable;
 
-    const unknownSpeedMsgElNullable = document.getElementById("unknown-speed-msg");
+    const unknownSpeedMsgElNullable =
+      document.getElementById("unknown-speed-msg");
     if (!unknownSpeedMsgElNullable) {
       throw new Error("Unknown speed message element not found");
     }
-    unknownSpeedMsgEl = unknownSpeedMsgElNullable;
 
     // Enable test mode by default
     // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing

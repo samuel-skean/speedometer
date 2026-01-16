@@ -440,7 +440,8 @@ export function init(): void {
   }
   warningEl = warningElNullable as HTMLDivElement;
 
-  const unknownSpeedMsgElNullable = document.getElementById("unknown-speed-msg");
+  const unknownSpeedMsgElNullable =
+    document.getElementById("unknown-speed-msg");
   if (!unknownSpeedMsgElNullable) {
     throw new Error("Unknown speed message element not found");
   }
