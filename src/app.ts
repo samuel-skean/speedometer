@@ -361,6 +361,11 @@ function startGeolocation(): void {
       const diff = Date.now() - lastUpdateTimestamp;
       if (lastUpdateTimestamp > 0 && diff > 5000) {
         if (warningEl) {
+          // Do not show stale warning if we are currently showing "Unknown Speed"
+          if (unknownSpeedMsgEl && !unknownSpeedMsgEl.hidden) {
+            return;
+          }
+
           warningEl.hidden = false;
           // Hide unknown speed message if warning is shown (priority)
           if (unknownSpeedMsgEl) {

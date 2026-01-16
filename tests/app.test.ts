@@ -448,4 +448,46 @@ describe("Speedometer App", () => {
     expect(warningEl.hidden).toBe(false);
     expect(warningEl.textContent).toMatch(/11 seconds? old/);
   });
+
+  it("does not show stale data warning when speed is unknown", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const now = 1000000;
+    vi.setSystemTime(now);
+
+    // Simulate position update with null speed (unknown)
+    const oldTimestamp = now;
+    const mockPosition = {
+      coords: {
+        speed: null,
+        accuracy: 5,
+      },
+      timestamp: oldTimestamp,
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchPosition not called");
+    }
+
+    // Check initial state
+    const unknownSpeedMsgEl = document.getElementById("unknown-speed-msg");
+    expect(unknownSpeedMsgEl?.hidden).toBe(false);
+    expect(warningEl.hidden).toBe(true);
+
+    // Advance time by 10 seconds (diff > 5000)
+    vi.advanceTimersByTime(10000);
+
+    // Expect warning to remain hidden because speed is unknown
+    expect(warningEl.hidden).toBe(true);
+  });
 });
