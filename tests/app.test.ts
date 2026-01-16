@@ -7,7 +7,7 @@ describe("Speedometer App", () => {
   let statusEl: HTMLElement;
   let unitBtn: HTMLElement;
   let keepScreenOnEl: HTMLInputElement;
-  let warningEl: HTMLElement;
+  let unknownSpeedMsgEl: HTMLElement;
   let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
@@ -16,8 +16,7 @@ describe("Speedometer App", () => {
     // Reset DOM
     document.body.innerHTML = `
       <div class="top-messages-container">
-        <div id="warning" class="warning pill" hidden>Speed data is old</div>
-        <div id="unknown-speed-msg" hidden>Speed is unknown.</div>
+        <div id="unknown-speed-msg">Speed is unknown.</div>
       </div>
       <div class="container">
           <div
@@ -61,17 +60,12 @@ describe("Speedometer App", () => {
     }
     keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
 
-    const warningElNullable = document.getElementById("warning");
-    if (!warningElNullable) {
-      throw new Error("Warning element not found");
-    }
-    warningEl = warningElNullable;
-
     const unknownSpeedMsgElNullable =
       document.getElementById("unknown-speed-msg");
     if (!unknownSpeedMsgElNullable) {
       throw new Error("Unknown speed message element not found");
     }
+    unknownSpeedMsgEl = unknownSpeedMsgElNullable;
 
     // Enable test mode by default
     // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
@@ -129,7 +123,7 @@ describe("Speedometer App", () => {
     expect(speedEl.textContent).toBe(PLACEHOLDER);
     expect(unitBtn.textContent).toBe("mph");
     expect(statusEl.textContent).toBe("Requesting GPS...");
-    expect(warningEl.hidden).toBe(true);
+    expect(unknownSpeedMsgEl.hidden).toBe(false);
   });
 
   it("toggles units when button is clicked", () => {
@@ -184,7 +178,7 @@ describe("Speedometer App", () => {
     expect(speedEl.textContent).toBe("22");
     expect(speedEl.dataset.placeholderVisible).toBe("false");
     expect(statusEl.textContent).toBe("Accuracy: ±5m");
-    expect(warningEl.hidden).toBe(true);
+    expect(unknownSpeedMsgEl.hidden).toBe(true);
 
     // Toggle unit to km/h
     // 10 m/s * 3.6 = 36 km/h
@@ -221,9 +215,42 @@ describe("Speedometer App", () => {
     }
 
     // Should remain placeholder if speed is null (no update logic triggered for null speed in app.ts)
-    // Actually app.ts says: if (typeof speed === "number" ...). If null, it skips renderSpeed.
+    // And unknown speed message should be visible
     expect(speedEl.textContent).toBe(PLACEHOLDER);
     expect(speedEl.dataset.placeholderVisible).toBe("true");
+    expect(unknownSpeedMsgEl.hidden).toBe(false);
+
+    watchPositionSpy.mockRestore();
+  });
+
+  it("shows unknown speed message when data is stale", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    // Send valid speed
+    const mockPosition = {
+      coords: { speed: 10, accuracy: 5 },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+    expect(unknownSpeedMsgEl.hidden).toBe(true);
+
+    // Advance time > 5s
+    vi.advanceTimersByTime(6000);
+
+    expect(unknownSpeedMsgEl.hidden).toBe(false);
 
     watchPositionSpy.mockRestore();
   });
@@ -307,11 +334,7 @@ describe("Speedometer App", () => {
       }
 
       // The UI should verify it's valid before rendering, so it shouldn't update to "0" or "Infinity" if filtered out by handlePosition.
-      // BUT wait, app.ts handlePosition checks: if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0)
-      // So for these invalid inputs, renderSpeed is NOT called.
       // Thus the display should remain at the default (or previous value).
-
-      // Let's verify it remains the placeholder (since we haven't sent a valid speed yet).
       expect(speedEl.textContent).toBe(PLACEHOLDER);
     });
 
@@ -345,11 +368,6 @@ describe("Speedometer App", () => {
     // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
     (window as any).__TEST_MODE__ = false;
 
-    // Note: In JSDOM, hasNativeSpeedField() returns false, so init() fails early.
-    // This results in the same "Unsupported device" UI, satisfying the test.
-    // If we wanted to test the specific branch for isLikelyGpsDevice(), we'd need
-    // to mock GeolocationCoordinates.prototype.speed on window, which we are avoiding.
-
     Object.defineProperty(navigator, "userAgentData", {
       value: { mobile: false },
       configurable: true,
@@ -359,10 +377,6 @@ describe("Speedometer App", () => {
 
     const bodyText = document.body.textContent ?? "";
     expect(bodyText).toContain("Unsupported device");
-    // Since hasNativeSpeedField fails first, we might see the generic message or specific one?
-    // renderUnsupported() text: "Your browser's location API is missing ... or this device doesn't have built-in GPS hardware"
-    // The test checks for "doesn't have built-in GPS hardware".
-    // This text is present in the rendered HTML regardless of which check failed.
     expect(bodyText).toContain("doesn't have built-in GPS hardware");
   });
 
