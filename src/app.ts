@@ -4,14 +4,13 @@
  * - No distance/time fallback when speed is unavailable.
  * - Displays speed centered on screen; unit toggle between mph and km/h.
  */
-import { convertSpeed, formatDuration, type Unit, Units } from "./logic";
+import { convertSpeed, type Unit, Units } from "./logic";
 
 // Define DOM elements
 let speedEl: HTMLDivElement;
 let statusEl: HTMLDivElement;
 let unitBtns: NodeListOf<HTMLButtonElement>;
 let keepScreenOnEl: HTMLInputElement;
-let warningEl: HTMLDivElement;
 let unknownSpeedMsgEl: HTMLDivElement;
 
 // Mutable state
@@ -272,9 +271,6 @@ function handlePosition(pos: GeolocationPosition): void {
     lastSpeedMs = speed;
     renderSpeed(speed);
     lastUpdateTimestamp = now;
-    if (warningEl) {
-      warningEl.hidden = true;
-    }
     if (unknownSpeedMsgEl) {
       unknownSpeedMsgEl.hidden = true;
     }
@@ -288,9 +284,6 @@ function handlePosition(pos: GeolocationPosition): void {
     // Show placeholder speed
     showPlaceholder();
 
-    if (warningEl) {
-      warningEl.hidden = true;
-    }
     if (unknownSpeedMsgEl) {
       unknownSpeedMsgEl.hidden = false;
     }
@@ -362,32 +355,8 @@ function startGeolocation(): void {
     setInterval(() => {
       const diff = Date.now() - lastUpdateTimestamp;
       if (lastUpdateTimestamp > 0 && diff > 5000) {
-        if (warningEl) {
-          warningEl.hidden = false;
-          // Hide unknown speed message if warning is shown (priority)
-          if (unknownSpeedMsgEl) {
-            unknownSpeedMsgEl.hidden = true;
-          }
-
-          const parts = formatDuration(diff);
-
-          const isMultiPart = parts.length > 1;
-          const htmlParts = parts.map((part) => {
-            const label = isMultiPart
-              ? part.unit[0]
-              : part.value === 1
-                ? part.unit
-                : `${part.unit}s`;
-
-            let displayValue = part.value.toString();
-            if (isMultiPart && part !== parts[0]) {
-              displayValue = displayValue.padStart(part.maxDigits, "0");
-            }
-
-            return `<span class="warning-digits" style="min-width: ${part.maxDigits}ch">${displayValue}</span> ${label}`;
-          });
-
-          warningEl.innerHTML = `Speed data is ${htmlParts.join(" ")} old`;
+        if (unknownSpeedMsgEl) {
+          unknownSpeedMsgEl.hidden = false;
         }
       }
     }, 1000);
@@ -433,12 +402,6 @@ export function init(): void {
     throw new Error("Keep screen on element not found");
   }
   keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
-
-  const warningElNullable = document.getElementById("warning");
-  if (!warningElNullable) {
-    throw new Error("Warning element not found");
-  }
-  warningEl = warningElNullable as HTMLDivElement;
 
   const unknownSpeedMsgElNullable =
     document.getElementById("unknown-speed-msg");

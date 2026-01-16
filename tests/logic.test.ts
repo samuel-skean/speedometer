@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convertSpeed, formatDuration, Units } from "../src/logic";
+import { convertSpeed, Units } from "../src/logic";
 
 describe("Logic: Speed Conversion", () => {
   describe("Standard Conversions", () => {
@@ -60,51 +60,5 @@ describe("Logic: Speed Conversion", () => {
     it("returns 0 for -Infinity", () => {
       expect(convertSpeed(-Infinity, Units.MPH)).toBe(0);
     });
-  });
-});
-
-describe("Logic: Format Duration (New Requirements)", () => {
-  it("formats < 1 minute as seconds", () => {
-    // 59 seconds
-    const result = formatDuration(59000);
-    expect(result).toEqual([{ value: 59, unit: "second", maxDigits: 2 }]);
-  });
-
-  it("formats > 1 minute as minutes and seconds", () => {
-    // 1 min 30 sec = 90000 ms
-    const result = formatDuration(90000);
-    // Expecting 2 components
-    expect(result).toEqual([
-      { value: 1, unit: "minute", maxDigits: 2 },
-      { value: 30, unit: "second", maxDigits: 2 },
-    ]);
-  });
-
-  it("formats > 1 hour as hours and minutes", () => {
-    // 1 hour 30 min = 3600 + 1800 = 5400 sec = 5400000 ms
-    const result = formatDuration(5400000);
-    expect(result).toEqual([
-      { value: 1, unit: "hour", maxDigits: 2 },
-      { value: 30, unit: "minute", maxDigits: 2 },
-    ]);
-  });
-
-  it("formats > 1 day as days and hours", () => {
-    // 1 day 2 hours = 24 + 2 = 26 hours
-    const result = formatDuration(26 * 3600 * 1000);
-    expect(result).toEqual([
-      { value: 1, unit: "day", maxDigits: 3 },
-      { value: 2, unit: "hour", maxDigits: 2 },
-    ]);
-  });
-
-  it("formats > 1 year as years and hours", () => {
-    // 1 year (365 days) + 5 hours
-    const ms = (365 * 24 + 5) * 3600 * 1000;
-    const result = formatDuration(ms);
-    expect(result).toEqual([
-      { value: 1, unit: "year", maxDigits: 3 },
-      { value: 5, unit: "hour", maxDigits: 4 }, // Hours in a year can be up to 8760 (approx), so maybe 4 digits?
-    ]);
   });
 });
