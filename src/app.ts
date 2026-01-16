@@ -268,10 +268,9 @@ function handlePosition(pos: GeolocationPosition): void {
 
   // Update speed only when native speed is provided and valid
   if (typeof speed === "number" && Number.isFinite(speed) && speed >= 0) {
-    const now = Date.now();
     lastSpeedMs = speed;
     renderSpeed(speed);
-    lastUpdateTimestamp = now;
+    lastUpdateTimestamp = pos.timestamp;
     if (warningEl) {
       warningEl.hidden = true;
     }
@@ -282,8 +281,7 @@ function handlePosition(pos: GeolocationPosition): void {
     // Valid location update but no speed (e.g. stationary or not determined yet)
     // We treat this as a "fresh" update to prevent the stale data warning,
     // but we show the "Unknown Speed" message.
-    const now = Date.now();
-    lastUpdateTimestamp = now;
+    lastUpdateTimestamp = pos.timestamp;
 
     // Show placeholder speed
     showPlaceholder();

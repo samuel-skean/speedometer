@@ -412,4 +412,40 @@ describe("Speedometer App", () => {
     watchPositionSpy.mockRestore();
     consoleWarnSpy.mockRestore();
   });
+
+  it("shows stale data warning when update timestamp is old", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const now = 1000000;
+    vi.setSystemTime(now);
+
+    // Simulate position update that is 10 seconds old
+    const oldTimestamp = now - 10000;
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: oldTimestamp,
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchPosition not called");
+    }
+
+    vi.advanceTimersByTime(1000);
+
+    expect(warningEl.hidden).toBe(false);
+    expect(warningEl.textContent).toMatch(/11 seconds? old/);
+  });
 });
