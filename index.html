@@ -121,7 +121,7 @@ button.landscape-unit {
       Constraint 1: Height. Leave room for warning bar (top) and controls (bottom).
       Constraint 2: Width. Must fit 3 digits (3em width).
     */
-    font-size: min(32vw, 65svh);
+    font-size: min(27vw, 65svh);
     line-height: 0.8;
     margin: auto;
     /* Move down to avoid clipping at the top */
@@ -164,6 +164,8 @@ button.landscape-unit {
     /* Reduce padding to give more space to speed */
     padding-top: 4px;
     padding-bottom: max(4px, env(safe-area-inset-bottom));
+    padding-left: max(64px, env(safe-area-inset-left));
+    padding-right: max(64px, env(safe-area-inset-right));
   }
 
   .warning {
