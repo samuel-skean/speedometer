@@ -1,0 +1,59 @@
+ INFO  Accepting connections at http://localhost:3000
+ HTTP  1/17/2026 9:42:27 PM ::1 GET /
+ HTTP  1/17/2026 9:42:27 PM ::1 Returned 200 in 65 ms
+ HTTP  1/17/2026 9:42:27 PM ::1 GET /assets/index-SUbm0UCn.js
+ HTTP  1/17/2026 9:42:27 PM ::1 Returned 200 in 4 ms
+ HTTP  1/17/2026 9:43:14 PM ::1 GET /
+ HTTP  1/17/2026 9:43:14 PM ::1 Returned 200 in 1 ms
+ HTTP  1/17/2026 9:43:14 PM ::1 GET /assets/index-SUbm0UCn.js
+ HTTP  1/17/2026 9:43:14 PM ::1 Returned 200 in 1 ms
+ HTTP  1/17/2026 9:43:43 PM ::1 GET /
+ HTTP  1/17/2026 9:43:43 PM ::1 Returned 200 in 1 ms
+ HTTP  1/17/2026 9:43:43 PM ::1 GET /assets/index-SUbm0UCn.js
+ HTTP  1/17/2026 9:43:43 PM ::1 Returned 200 in 2 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 200 in 2 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /assets/index-SUbm0UCn.js
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 200 in 1 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /service-worker.js
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 200 in 2 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 304 in 1 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /index.html
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 301 in 1 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /index
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 301 in 0 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 304 in 3 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 304 in 2 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /manifest.webmanifest
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 404 in 3 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /icons/generated/icon-192.png
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 404 in 3 ms
+ HTTP  1/17/2026 9:44:05 PM ::1 GET /icons/generated/icon-512.png
+ HTTP  1/17/2026 9:44:05 PM ::1 Returned 404 in 2 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 200 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /assets/index-SUbm0UCn.js
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 200 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /service-worker.js
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 200 in 3 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 304 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /index.html
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 301 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /index
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 301 in 0 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 304 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 304 in 0 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /manifest.webmanifest
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 404 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /icons/generated/icon-192.png
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 404 in 1 ms
+ HTTP  1/17/2026 9:44:22 PM ::1 GET /icons/generated/icon-512.png
+ HTTP  1/17/2026 9:44:22 PM ::1 Returned 404 in 1 ms
+
+ INFO  Gracefully shutting down. Please wait...
