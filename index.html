@@ -110,6 +110,13 @@ button.landscape-unit {
   display: none;
 }
 
+@media (orientation: portrait) {
+  .speed {
+    font-size: clamp(64px, 52vw, 600px);
+    width: 3ch;
+  }
+}
+
 @media (orientation: landscape) {
   .container {
     justify-content: center;
