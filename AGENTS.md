@@ -1,0 +1,1 @@
+Always bump the patch component of the version whenever you submit a change to be reviewed by the user.
