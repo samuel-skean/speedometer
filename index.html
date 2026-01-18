@@ -114,6 +114,8 @@ button.landscape-unit {
   .speed {
     font-size: clamp(64px, 42vw, 600px);
     width: 3ch;
+    /* Ensure text doesn't overflow if the screen is very narrow */
+    max-width: 100%;
   }
 }
 
