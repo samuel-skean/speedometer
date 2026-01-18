@@ -110,6 +110,15 @@ button.landscape-unit {
   display: none;
 }
 
+@media (orientation: portrait) {
+  .speed {
+    font-size: clamp(64px, 42vw, 600px);
+    width: 3ch;
+    /* Ensure text doesn't overflow if the screen is very narrow */
+    max-width: 100%;
+  }
+}
+
 @media (orientation: landscape) {
   .container {
     justify-content: center;
@@ -589,10 +598,10 @@ button.landscape-unit {
       <div
         id="speed"
         class="speed"
-        data-placeholder="———"
+        data-placeholder="–––"
         data-placeholder-visible="true"
       >
-        ———
+        –––
       </div>
       <button id="unit" type="button" class="unit" aria-label="Toggle Unit">mph</button>
     </div>
