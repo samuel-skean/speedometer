@@ -22,7 +22,7 @@ let wakeLock: WakeLockSentinel | null = null;
 
 let lastHandlePositionTime: number | null = null;
 
-export const PLACEHOLDER = "———";
+export const PLACEHOLDER = "–––";
 
 const GITHUB_LINK_HTML = `
   <a
