@@ -290,10 +290,10 @@ button.landscape-unit {
 
   /* Animation */
   transition:
-    display 0.5s allow-discrete,
-    overlay 0.5s allow-discrete,
-    transform 0.5s cubic-bezier(0.32, 0.72, 0, 1),
-    max-width 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+    display 0.75s allow-discrete,
+    overlay 0.75s allow-discrete,
+    transform 0.75s cubic-bezier(0.32, 0.72, 0, 1),
+    max-width 0.75s cubic-bezier(0.32, 0.72, 0, 1);
   transform: translate(var(--exit-x, 0px), var(--exit-y, 0px)) scale(0);
   transform-origin: center center;
   margin: auto;
@@ -306,6 +306,11 @@ button.landscape-unit {
   transform: translate(0, 0) scale(1);
   display: flex;
   flex-direction: column;
+  transition:
+    display 0.75s allow-discrete,
+    overlay 0.75s allow-discrete,
+    transform 0.75s cubic-bezier(0.32, 0.72, 0, 1),
+    max-width 0.75s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @starting-style {
@@ -318,12 +323,23 @@ button.landscape-unit {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   transition:
-    display 0.5s allow-discrete,
-    overlay 0.5s allow-discrete;
+    display 0.75s allow-discrete,
+    overlay 0.75s allow-discrete,
+    background-color 0.75s,
+    backdrop-filter 0.75s;
+}
+
+.info-popover:popover-open::backdrop {
+  transition:
+    display 0.75s allow-discrete,
+    overlay 0.75s allow-discrete,
+    background-color 0.75s,
+    backdrop-filter 0.75s;
 }
 
 .info-popover:not(:popover-open)::backdrop {
   background: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
 }
 
 .info-popover h2 {
