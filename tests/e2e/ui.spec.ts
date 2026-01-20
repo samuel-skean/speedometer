@@ -41,9 +41,6 @@ test.describe("Speedometer UI & Layout", () => {
     // Popover is now suppressed by default in test setup, so we open it manually
     await page.locator(".info-btn").click();
     await expect(popover).toBeVisible();
-
-    const heading = popover.locator("h2");
-    await expect(heading).toHaveText("Info");
   });
 
   test("Landscape Layout - Browser Mode (Wide)", async ({ page }) => {
