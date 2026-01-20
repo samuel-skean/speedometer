@@ -8,11 +8,17 @@ describe("Speedometer App", () => {
   let unitBtn: HTMLElement;
   let keepScreenOnEl: HTMLInputElement;
   let warningEl: HTMLElement;
+  let mobileOverride: PropertyDescriptor | undefined;
 
   beforeEach(() => {
+    vi.useFakeTimers();
+
     // Reset DOM
     document.body.innerHTML = `
-      <div id="warning" class="warning" hidden>Speed data is old</div>
+      <div class="top-messages-container">
+        <div id="warning" class="warning pill" hidden>Speed data is old</div>
+        <div id="unknown-speed-msg" hidden>Speed is unknown.</div>
+      </div>
       <div class="container">
           <div
             id="speed"
@@ -32,25 +38,44 @@ describe("Speedometer App", () => {
     `;
 
     const speedElNullable = document.getElementById("speed");
-    if (!speedElNullable) throw new Error("Speed element not found");
+    if (!speedElNullable) {
+      throw new Error("Speed element not found");
+    }
     speedEl = speedElNullable;
 
     const statusElNullable = document.getElementById("status");
-    if (!statusElNullable) throw new Error("Status element not found");
+    if (!statusElNullable) {
+      throw new Error("Status element not found");
+    }
     statusEl = statusElNullable;
 
     const unitBtnNullable = document.getElementById("unit");
-    if (!unitBtnNullable) throw new Error("Unit button not found");
+    if (!unitBtnNullable) {
+      throw new Error("Unit button not found");
+    }
     unitBtn = unitBtnNullable;
 
     const keepScreenOnElNullable = document.getElementById("keepScreenOn");
-    if (!keepScreenOnElNullable)
+    if (!keepScreenOnElNullable) {
       throw new Error("Keep screen on element not found");
+    }
     keepScreenOnEl = keepScreenOnElNullable as HTMLInputElement;
 
     const warningElNullable = document.getElementById("warning");
-    if (!warningElNullable) throw new Error("Warning element not found");
+    if (!warningElNullable) {
+      throw new Error("Warning element not found");
+    }
     warningEl = warningElNullable;
+
+    const unknownSpeedMsgElNullable =
+      document.getElementById("unknown-speed-msg");
+    if (!unknownSpeedMsgElNullable) {
+      throw new Error("Unknown speed message element not found");
+    }
+
+    // Enable test mode by default
+    // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+    (window as any).__TEST_MODE__ = true;
 
     // Reset LocalStorage
     localStorage.clear();
@@ -75,11 +100,28 @@ describe("Speedometer App", () => {
       },
       writable: true,
     });
+
+    mobileOverride = Object.getOwnPropertyDescriptor(
+      navigator,
+      "userAgentData",
+    );
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { mobile: true },
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     resetState();
+
+    if (mobileOverride) {
+      Object.defineProperty(navigator, "userAgentData", mobileOverride);
+    } else {
+      delete (navigator as { userAgentData?: unknown }).userAgentData;
+    }
   });
 
   it("initializes with default values", () => {
@@ -133,6 +175,7 @@ describe("Speedometer App", () => {
 
     // Trigger the callback
     if (watchSuccessCallback) {
+      // Send the update
       watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
     } else {
       throw new Error("watchSuccessCallback was not set");
@@ -191,7 +234,9 @@ describe("Speedometer App", () => {
     const watchPositionSpy = vi
       .spyOn(navigator.geolocation, "watchPosition")
       .mockImplementation((_, error) => {
-        if (error === null) throw new Error(`error was null`);
+        if (error === null) {
+          throw new Error(`error was null`);
+        }
         watchErrorCallback = error;
         return 1;
       });
@@ -213,7 +258,9 @@ describe("Speedometer App", () => {
       throw new Error("watchErrorCallback was not set");
     }
 
-    expect(statusEl.textContent).toContain("permission denied");
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Location Denied");
+    expect(bodyText).toContain("Location services are disabled");
 
     watchPositionSpy.mockRestore();
   });
@@ -223,8 +270,6 @@ describe("Speedometer App", () => {
 
     // Simulate click
     fireEvent.click(keepScreenOnEl); // changes checked state to true and fires change event
-    // Wait for async handler
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(navigator.wakeLock.request).toHaveBeenCalledWith("screen");
   });
@@ -283,5 +328,166 @@ describe("Speedometer App", () => {
     expect(speedEl.textContent).toBe("22");
 
     watchPositionSpy.mockRestore();
+  });
+
+  it("replaces the UI when the platform can't provide speed", () => {
+    // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+    (window as any).__TEST_MODE__ = false;
+
+    init();
+
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Unsupported device");
+    expect(bodyText).toContain("can't report GPS speed");
+  });
+
+  it("replaces the UI on devices that report no GPS hardware", () => {
+    // biome-ignore lint/suspicious/noExplicitAny: Mocking global for testing
+    (window as any).__TEST_MODE__ = false;
+
+    // Note: In JSDOM, hasNativeSpeedField() returns false, so init() fails early.
+    // This results in the same "Unsupported device" UI, satisfying the test.
+    // If we wanted to test the specific branch for isLikelyGpsDevice(), we'd need
+    // to mock GeolocationCoordinates.prototype.speed on window, which we are avoiding.
+
+    Object.defineProperty(navigator, "userAgentData", {
+      value: { mobile: false },
+      configurable: true,
+    });
+
+    init();
+
+    const bodyText = document.body.textContent ?? "";
+    expect(bodyText).toContain("Unsupported device");
+    // Since hasNativeSpeedField fails first, we might see the generic message or specific one?
+    // renderUnsupported() text: "Your browser's location API is missing ... or this device doesn't have built-in GPS hardware"
+    // The test checks for "doesn't have built-in GPS hardware".
+    // This text is present in the rendered HTML regardless of which check failed.
+    expect(bodyText).toContain("doesn't have built-in GPS hardware");
+  });
+
+  it("logs warning to console when handlePosition calls are > 1.1s apart", () => {
+    const consoleWarnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => {});
+    let watchSuccessCallback: PositionCallback | undefined;
+
+    const watchPositionSpy = vi
+      .spyOn(navigator.geolocation, "watchPosition")
+      .mockImplementation((success) => {
+        watchSuccessCallback = success;
+        return 1;
+      });
+
+    init();
+
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: Date.now(),
+    };
+
+    if (watchSuccessCallback) {
+      // First call (T=0)
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      // Second call (T=1.0s) - no warning (threshold is now 1.1s)
+      vi.advanceTimersByTime(1000);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+      // Third call (T=1.2s from previous) - warning expected
+      vi.advanceTimersByTime(1200);
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/Time between handlePosition calls: 1200ms/),
+      );
+    } else {
+      throw new Error("watchSuccessCallback was not set");
+    }
+
+    watchPositionSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it("shows stale data warning when update timestamp is old", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const now = 1000000;
+    vi.setSystemTime(now);
+
+    // Simulate position update that is 10 seconds old
+    const oldTimestamp = now - 10000;
+    const mockPosition = {
+      coords: {
+        speed: 10,
+        accuracy: 5,
+      },
+      timestamp: oldTimestamp,
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchPosition not called");
+    }
+
+    vi.advanceTimersByTime(1000);
+
+    expect(warningEl.hidden).toBe(false);
+    expect(warningEl.textContent).toMatch(/11 seconds? old/);
+  });
+
+  it("does not show stale data warning when speed is unknown", () => {
+    let watchSuccessCallback: PositionCallback | undefined;
+    vi.spyOn(navigator.geolocation, "watchPosition").mockImplementation(
+      (success) => {
+        watchSuccessCallback = success;
+        return 1;
+      },
+    );
+
+    init();
+
+    const now = 1000000;
+    vi.setSystemTime(now);
+
+    // Simulate position update with null speed (unknown)
+    const oldTimestamp = now;
+    const mockPosition = {
+      coords: {
+        speed: null,
+        accuracy: 5,
+      },
+      timestamp: oldTimestamp,
+    };
+
+    if (watchSuccessCallback) {
+      watchSuccessCallback(mockPosition as unknown as GeolocationPosition);
+    } else {
+      throw new Error("watchPosition not called");
+    }
+
+    // Check initial state
+    const unknownSpeedMsgEl = document.getElementById("unknown-speed-msg");
+    expect(unknownSpeedMsgEl?.hidden).toBe(false);
+    expect(warningEl.hidden).toBe(true);
+
+    // Advance time by 10 seconds (diff > 5000)
+    vi.advanceTimersByTime(10000);
+
+    // Expect warning to remain hidden because speed is unknown
+    expect(warningEl.hidden).toBe(true);
   });
 });

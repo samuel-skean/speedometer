@@ -11,3 +11,5 @@ dist/
 
 # Optional: ignore local development certificates
 certs/
+playwright-report/
+test-results/
